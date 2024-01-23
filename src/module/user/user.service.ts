@@ -6,17 +6,20 @@ import { MailService } from 'src/mail/mail.service';
 import { RegisterUserDTO } from './dtos/register-user.dto';
 import { User } from 'src/model/user.model';
 import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
+import { Store } from 'src/model/store.model';
+import { StoreService } from '../store/store.service';
+import { LoginUserDTO } from './dtos/login-user.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
     static otp: string;
-    accountSid = process.env.ACCOUNT_SID
-    authToken = process.env.AUTH_TOKEN
-    client = require('twilio')(this.accountSid, this.authToken)
     constructor(
         @InjectRepository(User)
         private usersRepository: Repository<User>,
-        private readonly mailService: MailService
+        private readonly mailService: MailService,
+        private readonly storeService: StoreService,
+        private readonly jwtService: JwtService
     ) { }
 
     async findAll(): Promise<User[]> {
@@ -39,19 +42,21 @@ export class UserService {
         this.mailService.sendUserConfirmationEmail(newUser, UserService.otp)
     }
 
-    async confirmOTP(email: string, body: OTPConfirmDTO) {
-        console.log(UserService.otp)
-        console.log(body.otp)
+    async confirmOTP(email: string, body: OTPConfirmDTO, store: Store) {
+        const user = await this.findByEmail(email)
         if (UserService.otp == body.otp) {
-            const user = await this.findByEmail(email)
             const currentDate = new Date(Date.now())
             const updateUser = {
                 ...user,
                 email_verified_at: currentDate
-            }
-            this.usersRepository.save(updateUser)
+            } as User
+            await this.usersRepository.save(updateUser)
+            await this.storeService.addUser(updateUser, store)
         }
-        else throw new NotFoundException()
+        else {
+            this.usersRepository.remove(user)
+            throw new NotFoundException()
+        }
     }
 
     async findByName(name: string): Promise<User> {
@@ -73,6 +78,18 @@ export class UserService {
         }
     }
 
+    async login(user: LoginUserDTO): Promise<{ existedUser: User, accessToken: string }> {
+        const existedUser = await this.findByEmail(user.email)
+        if (!existedUser) {
+            throw new NotFoundException('Not found Store Email')
+        }
+        if (!await bcrypt.compare(user.password, existedUser.password)) {
+            throw new NotFoundException('Wrong password')
+        }
+        const accessToken = await this.generateToken(existedUser)
+        return { existedUser, accessToken }
+    }
+
     async findOne(id: number): Promise<{ user?: User, isSuccess: boolean }> {
         const user = await this.usersRepository.findOne({ where: { id: id } })
         if (!user) {
@@ -84,5 +101,9 @@ export class UserService {
         await this.usersRepository.delete(id);
     }
 
+    async generateToken(user: User) {
+        const payload = { id: user?.id, email: user?.email }
+        return await this.jwtService.signAsync(payload)
+    }
 }
 

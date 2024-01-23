@@ -1,9 +1,12 @@
-import { BadRequestException, Body, Injectable, NotFoundException, Param, Redirect } from '@nestjs/common';
+import { BadRequestException, Body, Injectable, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Status, Store } from 'src/model/store.model';
-import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt'
+import * as bcrypt from 'bcrypt';
 import { MailService } from 'src/mail/mail.service';
+import { Status, Store } from 'src/model/store.model';
+import { User } from 'src/model/user.model';
+import { Repository } from 'typeorm';
+import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
 
 @Injectable()
@@ -11,7 +14,8 @@ export class StoreService {
     constructor(
         @InjectRepository(Store)
         private storesRepository: Repository<Store>,
-        private readonly mailService: MailService
+        private readonly mailService: MailService,
+        private readonly jwtService: JwtService
     ) { }
 
     async findAll(): Promise<Store[]> {
@@ -19,6 +23,23 @@ export class StoreService {
         if (stores) {
             return stores
         }
+    }
+    async getAllUser(store: Store): Promise<User[]> {
+        if (!store?.users) {
+            throw new NotFoundException()
+        }
+        return store?.users
+    }
+    async login(store: LoginStoreDTO) {
+        const existedStore = await this.findByEmail(store.email)
+        if (!existedStore) {
+            throw new NotFoundException('Not found Store Email')
+        }
+        if (!await bcrypt.compare(store.password, existedStore.password)) {
+            throw new NotFoundException('Wrong password')
+        }
+        const hashed = await bcrypt.hash(existedStore.email, 10)
+        this.mailService.sendRequestAdminConfirm(existedStore, hashed)
     }
 
     async create(@Body() Body: RegisterStoreDTO) {
@@ -40,14 +61,13 @@ export class StoreService {
         const isConfirm = await bcrypt.compare(email, token)
         if (isConfirm) {
             const store = await this.findByEmail(email)
-            const hashed = await bcrypt.hash(email, 10)
             const currentDate = new Date(Date.now())
             const updateStore = {
                 ...store,
                 email_verified_at: currentDate
             }
             this.storesRepository.save(updateStore)
-            this.mailService.sendRequestAdminConfirm(store, hashed)
+            return this.storesRepository.save(updateStore)
         }
         else {
             throw new NotFoundException('Please recheck your email')
@@ -61,8 +81,10 @@ export class StoreService {
             const updateStore = {
                 ...store,
                 status: Status.VALIDATED
-            }
-            return this.storesRepository.save(updateStore)
+            } as Store
+            this.storesRepository.save(updateStore)
+            const accessToken = await this.generateToken(updateStore)
+            return { updateStore, accessToken }
         }
     }
 
@@ -96,5 +118,13 @@ export class StoreService {
         await this.storesRepository.delete(id);
     }
 
+    async addUser(user: User, store: Store) {
+        await store.users?.push(user)
+    }
+
+    async generateToken(store: Store) {
+        const payload = { id: store?.id, email: store?.email }
+        return await this.jwtService.signAsync(payload)
+    }
 }
 

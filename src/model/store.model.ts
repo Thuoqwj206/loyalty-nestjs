@@ -1,4 +1,5 @@
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn, Table } from "typeorm";
+import { BaseEntity, Column, Entity, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
+import { User } from "./user.model";
 
 export enum Status {
     VALIDATED = 'VALIDATED',
@@ -46,4 +47,6 @@ export class Store extends BaseEntity {
     })
     status: Status
 
+    @OneToMany(() => User, (user) => user.id)
+    users: User[]
 }

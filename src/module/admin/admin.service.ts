@@ -1,7 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Admin } from 'src/model/admin.model';
 import { Repository } from 'typeorm';
+import { LoginAdminDTO } from './dtos/login-admin.dto';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 
 @Injectable()
@@ -9,6 +12,7 @@ export class AdminService {
     constructor(
         @InjectRepository(Admin)
         private adminsRepository: Repository<Admin>,
+        private jwtService: JwtService
     ) { }
 
     async findAll(): Promise<Admin[]> {
@@ -22,6 +26,28 @@ export class AdminService {
         const newAdmin = await this.adminsRepository.create(Body)
         await this.adminsRepository.save(newAdmin)
         return newAdmin
+    }
+
+    async login(admin: LoginAdminDTO): Promise<{ existedAdmin: Admin, accessToken: string }> {
+        const existedAdmin = await this.findByEmail(admin.email)
+        if (!existedAdmin) {
+            throw new NotFoundException('Not found Store Email')
+        }
+        if (!await bcrypt.compare(admin.password, existedAdmin.password)) {
+            throw new NotFoundException('Wrong password')
+        }
+        const accessToken = await this.generateToken(existedAdmin)
+        return { existedAdmin, accessToken }
+    }
+
+    async findByEmail(email: string): Promise<Admin> {
+        const store = await this.adminsRepository.findOne({ where: { email } })
+        if (store) {
+            return store
+        }
+        else {
+            throw new NotFoundException()
+        }
     }
 
     async findByName(name: string): Promise<Admin> {
@@ -46,5 +72,8 @@ export class AdminService {
         await this.adminsRepository.delete(id);
     }
 
-
+    async generateToken(admin: Admin) {
+        const payload = { id: admin?.id, email: admin?.email }
+        return await this.jwtService.signAsync(payload)
+    }
 }
