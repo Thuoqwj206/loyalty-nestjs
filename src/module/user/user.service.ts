@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Injectable, NotFoundException, Param, Redirect } from '@nestjs/common';
+import { BadRequestException, Body, Inject, Injectable, NotFoundException, Param, Redirect, UnauthorizedException, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt'
@@ -18,7 +18,6 @@ export class UserService {
         @InjectRepository(User)
         private usersRepository: Repository<User>,
         private readonly mailService: MailService,
-        private readonly storeService: StoreService,
         private readonly jwtService: JwtService
     ) { }
 
@@ -51,7 +50,8 @@ export class UserService {
                 email_verified_at: currentDate
             } as User
             await this.usersRepository.save(updateUser)
-            await this.storeService.addUser(updateUser, store)
+            store.users.push(updateUser)
+            await store.save()
         }
         else {
             this.usersRepository.remove(user)
@@ -107,12 +107,22 @@ export class UserService {
         this.mailService.sendUserConfirmationEmail(existedUser, UserService.otp)
     }
 
-    async findOne(id: number): Promise<{ user?: User, isSuccess: boolean }> {
+    async findOne(id: number): Promise<User> {
         const user = await this.usersRepository.findOne({ where: { id: id } })
         if (!user) {
-            return { isSuccess: false }
+            throw new NotFoundException()
         }
-        return { user, isSuccess: true }
+        return user
+    }
+
+    async logout(user: User) {
+        if (!user) {
+            throw new NotFoundException()
+        }
+        this.usersRepository.save({
+            ...user,
+            status: Status.INVALIDATED
+        })
     }
 
     async remove(id: number): Promise<void> {
