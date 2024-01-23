@@ -2,6 +2,9 @@ import { Body, Controller, Get, Param, Post, Put, Query, Render } from "@nestjs/
 import { UserService } from "./user.service";
 import { RegisterUserDTO } from "./dtos/register-user.dto";
 import { OTPConfirmDTO } from "./dtos/otp-confirm.dto";
+import { currentStore } from "src/decorator/current-store.decorator";
+import { Store } from "src/model/store.model";
+import { LoginUserDTO } from "./dtos/login-user.dto";
 
 @Controller('user')
 export class UsersController {
@@ -17,10 +20,15 @@ export class UsersController {
         return newUser;
     }
 
+    @Post('/login')
+    async login(@Body() body: LoginUserDTO) {
+        const user = await this.userService.login(body);
+        return user;
+    }
 
     @Post('/confirm/:email')
-    async confirmUser(@Query('email') email: string, @Body() body: OTPConfirmDTO) {
-        const verifyUser = await this.userService.confirmOTP(email, body)
+    async confirmUser(@Query('email') email: string, @Body() body: OTPConfirmDTO, @currentStore() store: Store) {
+        const verifyUser = await this.userService.confirmOTP(email, body, store)
         return verifyUser
     }
 }   

@@ -24,7 +24,7 @@ export class MailService {
         const url = `${process.env.APP_URL}/store/confirm?email=${store.email}&token=${hashed}`
         await this.mailerService.sendMail({
             to: process.env.ADMIN_ADDRESS,
-            subject: 'We have a new member,confirm it by the link below',
+            subject: 'We have login request, confirm it by the link below',
             template: './admin-confirm',
             context: {
                 name: store?.name,

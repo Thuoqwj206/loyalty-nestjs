@@ -6,9 +6,11 @@ import { StoreService } from './store.service';
 import { Store } from 'src/model/store.model';
 import { MailModule } from 'src/mail/mail.module';
 import { MailService } from 'src/mail/mail.service';
+import { JwtModule } from '@nestjs/jwt';
+import { jwtConfig } from 'src/config';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Store]), MailModule],
+    imports: [JwtModule.register(jwtConfig), TypeOrmModule.forFeature([Store]), MailModule],
     providers: [StoreService,],
     controllers: [StoresController],
     exports: [StoreService]
