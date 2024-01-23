@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Body, Injectable, NotFoundException, Request } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -8,6 +8,7 @@ import { User } from 'src/model/user.model';
 import { Repository } from 'typeorm';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
+import { request } from 'http';
 
 @Injectable()
 export class StoreService {
@@ -40,6 +41,17 @@ export class StoreService {
         }
         const hashed = await bcrypt.hash(existedStore.email, 10)
         this.mailService.sendRequestAdminConfirm(existedStore, hashed)
+    }
+
+    async logout(store: Store) {
+        console.log(store)
+        if (!store) {
+            throw new NotFoundException()
+        }
+        await this.storesRepository.save({
+            ...store,
+            status: Status.INVALIDATED
+        })
     }
 
     async create(@Body() Body: RegisterStoreDTO) {

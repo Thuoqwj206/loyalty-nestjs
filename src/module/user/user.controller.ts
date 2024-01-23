@@ -28,7 +28,13 @@ export class UsersController {
 
     @Post('/confirm/:email')
     async confirmUser(@Query('email') email: string, @Body() body: OTPConfirmDTO, @currentStore() store: Store) {
-        const verifyUser = await this.userService.confirmOTP(email, body, store)
+        const verifyUser = await this.userService.confirmRegisterOTP(email, body, store)
+        return verifyUser
+    }
+
+    @Post('/confirm-login/:email')
+    async confirmLogin(@Query('email') email: string, @Body() body: OTPConfirmDTO) {
+        const verifyUser = await this.userService.confirmLoginOTP(email, body)
         return verifyUser
     }
 }   

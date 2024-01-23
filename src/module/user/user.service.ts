@@ -6,7 +6,7 @@ import { MailService } from 'src/mail/mail.service';
 import { RegisterUserDTO } from './dtos/register-user.dto';
 import { User } from 'src/model/user.model';
 import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
-import { Store } from 'src/model/store.model';
+import { Status, Store } from 'src/model/store.model';
 import { StoreService } from '../store/store.service';
 import { LoginUserDTO } from './dtos/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -42,7 +42,7 @@ export class UserService {
         this.mailService.sendUserConfirmationEmail(newUser, UserService.otp)
     }
 
-    async confirmOTP(email: string, body: OTPConfirmDTO, store: Store) {
+    async confirmRegisterOTP(email: string, body: OTPConfirmDTO, store: Store) {
         const user = await this.findByEmail(email)
         if (UserService.otp == body.otp) {
             const currentDate = new Date(Date.now())
@@ -59,12 +59,29 @@ export class UserService {
         }
     }
 
+    async confirmLoginOTP(email: string, body: OTPConfirmDTO) {
+        const user = await this.findByEmail(email)
+        if (UserService.otp == body.otp) {
+            const updateUser = {
+                ...user,
+                status: Status.VALIDATED
+            } as User
+            await this.usersRepository.save(updateUser)
+            const accessToken = await this.generateToken(updateUser)
+            return { updateUser, accessToken }
+        }
+        else {
+            throw new NotFoundException('Wrong OTP')
+        }
+    }
+
     async findByName(name: string): Promise<User> {
         const user = await this.usersRepository.findOne({ where: { name } })
         if (user) {
             return user
         }
         else {
+            throw new NotFoundException()
         }
     }
 
@@ -78,7 +95,7 @@ export class UserService {
         }
     }
 
-    async login(user: LoginUserDTO): Promise<{ existedUser: User, accessToken: string }> {
+    async login(user: LoginUserDTO) {
         const existedUser = await this.findByEmail(user.email)
         if (!existedUser) {
             throw new NotFoundException('Not found Store Email')
@@ -86,8 +103,8 @@ export class UserService {
         if (!await bcrypt.compare(user.password, existedUser.password)) {
             throw new NotFoundException('Wrong password')
         }
-        const accessToken = await this.generateToken(existedUser)
-        return { existedUser, accessToken }
+        UserService.otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
+        this.mailService.sendUserConfirmationEmail(existedUser, UserService.otp)
     }
 
     async findOne(id: number): Promise<{ user?: User, isSuccess: boolean }> {
@@ -97,6 +114,7 @@ export class UserService {
         }
         return { user, isSuccess: true }
     }
+
     async remove(id: number): Promise<void> {
         await this.usersRepository.delete(id);
     }

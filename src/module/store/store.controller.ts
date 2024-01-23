@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Post, Put, Query, Res } from "@nestjs/common";
 import { StoreService } from "./store.service";
 import { RegisterStoreDTO } from "./dtos/register-store.dto";
-import { currentStore } from "src/decorator/current-store.decorator";
 import { Store } from "src/model/store.model";
 import { LoginStoreDTO } from "./dtos/login-store.dto";
+import { currentStore } from "src/decorator/current-store.decorator";
 
 @Controller('store')
 export class StoresController {
@@ -16,6 +16,7 @@ export class StoresController {
     async getAllUser(@currentStore() store: Store) {
         return this.getAllUser(store)
     }
+
     @Post()
     async register(@Body() body: RegisterStoreDTO) {
         const newStore = await this.storeService.create(body);
@@ -25,6 +26,16 @@ export class StoresController {
     async login(@Body() body: LoginStoreDTO) {
         const store = await this.storeService.login(body);
         return store;
+    }
+
+    @Get('current-store')
+    getCurrentUser(@currentStore() currentStore: Store) {
+        return currentStore
+    }
+
+    @Put('/logout')
+    async logout(@currentStore() store: Store) {
+        await this.storeService.logout(store);
     }
     @Get('/verify')
     async verifyEmail(@Query('email') email: string, @Query('token') token: string) {
