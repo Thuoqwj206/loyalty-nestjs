@@ -6,17 +6,17 @@ import { MailService } from 'src/mail/mail.service';
 import { RegisterUserDTO } from './dtos/register-user.dto';
 import { User } from 'src/model/user.model';
 import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
+import { Store } from 'src/model/store.model';
+import { StoreService } from '../store/store.service';
 
 @Injectable()
 export class UserService {
     static otp: string;
-    accountSid = process.env.ACCOUNT_SID
-    authToken = process.env.AUTH_TOKEN
-    client = require('twilio')(this.accountSid, this.authToken)
     constructor(
         @InjectRepository(User)
         private usersRepository: Repository<User>,
-        private readonly mailService: MailService
+        private readonly mailService: MailService,
+        private readonly storeService: StoreService
     ) { }
 
     async findAll(): Promise<User[]> {
@@ -39,19 +39,21 @@ export class UserService {
         this.mailService.sendUserConfirmationEmail(newUser, UserService.otp)
     }
 
-    async confirmOTP(email: string, body: OTPConfirmDTO) {
-        console.log(UserService.otp)
-        console.log(body.otp)
+    async confirmOTP(email: string, body: OTPConfirmDTO, store: Store) {
+        const user = await this.findByEmail(email)
         if (UserService.otp == body.otp) {
-            const user = await this.findByEmail(email)
             const currentDate = new Date(Date.now())
             const updateUser = {
                 ...user,
                 email_verified_at: currentDate
-            }
-            this.usersRepository.save(updateUser)
+            } as User
+            await this.usersRepository.save(updateUser)
+            await this.storeService.addUser(updateUser, store)
         }
-        else throw new NotFoundException()
+        else {
+            this.usersRepository.remove(user)
+            throw new NotFoundException()
+        }
     }
 
     async findByName(name: string): Promise<User> {

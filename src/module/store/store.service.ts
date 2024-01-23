@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt'
 import { MailService } from 'src/mail/mail.service';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
+import { User } from 'src/model/user.model';
 
 @Injectable()
 export class StoreService {
@@ -19,6 +20,12 @@ export class StoreService {
         if (stores) {
             return stores
         }
+    }
+    async getAllUser(store: Store): Promise<User[]> {
+        if (!store.users) {
+            throw new NotFoundException()
+        }
+        return store.users
     }
 
     async create(@Body() Body: RegisterStoreDTO) {
@@ -95,6 +102,11 @@ export class StoreService {
     async remove(id: number): Promise<void> {
         await this.storesRepository.delete(id);
     }
+
+    async addUser(user: User, store: Store) {
+        await store.users.push(user)
+    }
+
 
 }
 

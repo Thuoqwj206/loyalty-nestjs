@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from "@nestjs/common";
 import { StoreService } from "./store.service";
 import { RegisterStoreDTO } from "./dtos/register-store.dto";
+import { currentStore } from "src/decorator/current-store.decorator";
+import { Store } from "src/model/store.model";
 
 @Controller('store')
 export class StoresController {
@@ -9,7 +11,10 @@ export class StoresController {
     async getAll() {
         return this.storeService.findAll()
     }
-
+    @Get()
+    async getAllUser(@currentStore() store: Store) {
+        return this.getAllUser(store)
+    }
     @Post()
     async register(@Body() body: RegisterStoreDTO) {
         const newStore = await this.storeService.create(body);
