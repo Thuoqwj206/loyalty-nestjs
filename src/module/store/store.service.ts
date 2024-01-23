@@ -45,7 +45,7 @@ export class StoreService {
         this.mailService.sendRequestAdminConfirm(existedStore, hashed)
     }
 
-    async logout(store: any) {
+    async logout(store: Store) {
         if (!store) {
             throw new NotFoundException()
         }

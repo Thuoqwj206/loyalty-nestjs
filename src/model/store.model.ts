@@ -47,6 +47,6 @@ export class Store extends BaseEntity {
     })
     status: Status
 
-    @OneToMany(() => User, (user) => user.id)
+    @OneToMany(() => User, (user) => user.store)
     users: User[]
 }

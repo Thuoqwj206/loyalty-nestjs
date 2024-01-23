@@ -1,4 +1,5 @@
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn, Table } from "typeorm";
+import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn, Table } from "typeorm";
+import { Store } from "./store.model";
 export enum Status {
     VALIDATED = 'VALIDATED',
     INVALIDATED = 'INVALIDATED'
@@ -59,4 +60,7 @@ export class User extends BaseEntity {
         default: Rank.BRONZE
     })
     Rank: Rank
+
+    @ManyToOne(() => Store, (store) => store.users)
+    store: Store
 }
