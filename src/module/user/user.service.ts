@@ -29,7 +29,7 @@ export class UserService {
     }
 
     async create(@Body() Body: RegisterUserDTO) {
-        const user = await this.findByName(Body.email)
+        const user = await this.findByEmail(Body.email)
         if (user) {
             throw new BadRequestException('User already existed')
         }
@@ -49,8 +49,9 @@ export class UserService {
                 ...user,
                 email_verified_at: currentDate
             } as User
+            console.log(store)
             await this.usersRepository.save(updateUser)
-            store.users.push(updateUser)
+            store.users?.push(updateUser)
             await store.save()
         }
         else {
@@ -91,7 +92,6 @@ export class UserService {
             return user
         }
         else {
-            throw new NotFoundException()
         }
     }
 

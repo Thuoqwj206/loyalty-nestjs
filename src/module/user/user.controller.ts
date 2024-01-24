@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { RolesGuard } from "src/common/guard/role.guard";
 import { currentStore } from "src/decorator/current-store.decorator";
-
 import { Store } from "src/model/store.model";
 import { LoginUserDTO } from "./dtos/login-user.dto";
 import { OTPConfirmDTO } from "./dtos/otp-confirm.dto";
@@ -31,8 +30,6 @@ export class UsersController {
     }
 
     @Post('/login')
-    @Roles(ERole.Store)
-    @UseGuards(RolesGuard)
     async login(@Body() body: LoginUserDTO) {
         const user = await this.userService.login(body);
         return user;
@@ -46,6 +43,8 @@ export class UsersController {
     }
 
     @Post('/confirm/:email')
+    @Roles(ERole.Store)
+    @UseGuards(RolesGuard)
     async confirmUser(@Query('email') email: string, @Body() body: OTPConfirmDTO, @currentStore() store: Store) {
         const verifyUser = await this.userService.confirmRegisterOTP(email, body, store)
         return verifyUser

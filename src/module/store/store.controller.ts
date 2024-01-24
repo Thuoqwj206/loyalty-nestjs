@@ -9,8 +9,6 @@ import { Roles } from "src/decorator/role.decorator";
 import { ERole } from "src/enum/role.enum";
 
 @Controller('store')
-@Roles(ERole.Store)
-@UseGuards(RolesGuard)
 export class StoresController {
     constructor(private readonly storeService: StoreService) { }
     @Get()
@@ -27,19 +25,16 @@ export class StoresController {
         const newStore = await this.storeService.create(body);
         return newStore;
     }
+
     @Post('/login')
     async login(@Body() body: LoginStoreDTO) {
         const store = await this.storeService.login(body);
         return store;
     }
-
-    @Get('current-store')
-    getCurrentStore(@currentStore() currentStore: Store) {
-        return currentStore
-    }
-
-
     @Put('/logout')
+    @Roles(ERole.Store)
+    @UseGuards(RolesGuard)
+
     async logout(@currentStore() store: Store) {
         await this.storeService.logout(store);
     }
