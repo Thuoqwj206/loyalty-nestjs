@@ -1,16 +1,14 @@
-import { BadRequestException, Body, Inject, Injectable, NotFoundException, Request, UnauthorizedException, forwardRef } from '@nestjs/common';
+import { BadRequestException, Body, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { ERole } from 'src/enum/role.enum';
 import { MailService } from 'src/mail/mail.service';
 import { Status, Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
 import { Repository } from 'typeorm';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
-import { request } from 'http';
-import { ERole } from 'src/enum/role.enum';
-import { UserService } from '../user/user.service';
 
 @Injectable()
 export class StoreService {
@@ -49,6 +47,7 @@ export class StoreService {
         if (!store) {
             throw new NotFoundException()
         }
+        console.log(store.users)
         this.storesRepository.save({
             ...store,
             status: Status.INVALIDATED
