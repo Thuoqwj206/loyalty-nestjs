@@ -1,10 +1,13 @@
 import { BaseEntity, Column, Entity, PrimaryGeneratedColumn, Table } from "typeorm";
+export enum Status {
+    VALIDATED = 'VALIDATED',
+    INVALIDATED = 'INVALIDATED'
+}
 export enum Rank {
     BRONZE = 'BRONZE',
     SILVER = 'SILVER',
     GOLD = 'GOLD'
 }
-
 @Entity('users')
 export class User extends BaseEntity {
     @PrimaryGeneratedColumn()
@@ -12,7 +15,6 @@ export class User extends BaseEntity {
 
     @Column({
         type: 'varchar',
-        nullable: false
     })
     name: string
 
@@ -43,6 +45,13 @@ export class User extends BaseEntity {
         default: null
     })
     email_verified_at: Date
+
+    @Column({
+        type: "enum",
+        enum: Status,
+        default: Status.INVALIDATED
+    })
+    status: Status
 
     @Column({
         type: "enum",

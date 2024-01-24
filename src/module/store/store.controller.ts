@@ -1,11 +1,16 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Res } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
 import { StoreService } from "./store.service";
 import { RegisterStoreDTO } from "./dtos/register-store.dto";
-import { currentStore } from "src/decorator/current-store.decorator";
 import { Store } from "src/model/store.model";
 import { LoginStoreDTO } from "./dtos/login-store.dto";
+import { currentStore } from "src/decorator/current-store.decorator";
+import { RolesGuard } from "src/common/guard/role.guard";
+import { Roles } from "src/decorator/role.decorator";
+import { ERole } from "src/enum/role.enum";
 
 @Controller('store')
+@Roles(ERole.Store)
+@UseGuards(RolesGuard)
 export class StoresController {
     constructor(private readonly storeService: StoreService) { }
     @Get()
@@ -16,6 +21,7 @@ export class StoresController {
     async getAllUser(@currentStore() store: Store) {
         return this.getAllUser(store)
     }
+
     @Post()
     async register(@Body() body: RegisterStoreDTO) {
         const newStore = await this.storeService.create(body);
@@ -26,6 +32,18 @@ export class StoresController {
         const store = await this.storeService.login(body);
         return store;
     }
+
+    @Get('current-store')
+    getCurrentStore(@currentStore() currentStore: Store) {
+        return currentStore
+    }
+
+
+    @Put('/logout')
+    async logout(@currentStore() store: Store) {
+        await this.storeService.logout(store);
+    }
+
     @Get('/verify')
     async verifyEmail(@Query('email') email: string, @Query('token') token: string) {
         const verifyEmail = await this.storeService.verifyEmail(email, token)

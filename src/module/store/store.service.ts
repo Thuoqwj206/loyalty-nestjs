@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Body, Inject, Injectable, NotFoundException, Request, UnauthorizedException, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -8,6 +8,9 @@ import { User } from 'src/model/user.model';
 import { Repository } from 'typeorm';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
+import { request } from 'http';
+import { ERole } from 'src/enum/role.enum';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class StoreService {
@@ -40,6 +43,16 @@ export class StoreService {
         }
         const hashed = await bcrypt.hash(existedStore.email, 10)
         this.mailService.sendRequestAdminConfirm(existedStore, hashed)
+    }
+
+    async logout(store: any) {
+        if (!store) {
+            throw new NotFoundException()
+        }
+        this.storesRepository.save({
+            ...store,
+            status: Status.INVALIDATED
+        })
     }
 
     async create(@Body() Body: RegisterStoreDTO) {
@@ -83,6 +96,7 @@ export class StoreService {
                 status: Status.VALIDATED
             } as Store
             this.storesRepository.save(updateStore)
+
             const accessToken = await this.generateToken(updateStore)
             return { updateStore, accessToken }
         }
@@ -107,12 +121,12 @@ export class StoreService {
         }
     }
 
-    async findOne(id: number): Promise<{ store?: Store, isSuccess: boolean }> {
+    async findOne(id: number): Promise<Store> {
         const store = await this.storesRepository.findOne({ where: { id: id } })
         if (!store) {
-            return { isSuccess: false }
+
         }
-        return { store, isSuccess: true }
+        return store
     }
     async remove(id: number): Promise<void> {
         await this.storesRepository.delete(id);
@@ -123,7 +137,7 @@ export class StoreService {
     }
 
     async generateToken(store: Store) {
-        const payload = { id: store?.id, email: store?.email }
+        const payload = { id: store?.id, email: store?.email, role: ERole.Store }
         return await this.jwtService.signAsync(payload)
     }
 }

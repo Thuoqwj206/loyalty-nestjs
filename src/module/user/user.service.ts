@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Injectable, NotFoundException, Param, Redirect } from '@nestjs/common';
+import { BadRequestException, Body, Inject, Injectable, NotFoundException, Param, Redirect, UnauthorizedException, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt'
@@ -6,7 +6,7 @@ import { MailService } from 'src/mail/mail.service';
 import { RegisterUserDTO } from './dtos/register-user.dto';
 import { User } from 'src/model/user.model';
 import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
-import { Store } from 'src/model/store.model';
+import { Status, Store } from 'src/model/store.model';
 import { StoreService } from '../store/store.service';
 import { LoginUserDTO } from './dtos/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -18,7 +18,6 @@ export class UserService {
         @InjectRepository(User)
         private usersRepository: Repository<User>,
         private readonly mailService: MailService,
-        private readonly storeService: StoreService,
         private readonly jwtService: JwtService
     ) { }
 
@@ -42,7 +41,7 @@ export class UserService {
         this.mailService.sendUserConfirmationEmail(newUser, UserService.otp)
     }
 
-    async confirmOTP(email: string, body: OTPConfirmDTO, store: Store) {
+    async confirmRegisterOTP(email: string, body: OTPConfirmDTO, store: Store) {
         const user = await this.findByEmail(email)
         if (UserService.otp == body.otp) {
             const currentDate = new Date(Date.now())
@@ -51,11 +50,28 @@ export class UserService {
                 email_verified_at: currentDate
             } as User
             await this.usersRepository.save(updateUser)
-            await this.storeService.addUser(updateUser, store)
+            store.users.push(updateUser)
+            await store.save()
         }
         else {
             this.usersRepository.remove(user)
             throw new NotFoundException()
+        }
+    }
+
+    async confirmLoginOTP(email: string, body: OTPConfirmDTO) {
+        const user = await this.findByEmail(email)
+        if (UserService.otp == body.otp) {
+            const updateUser = {
+                ...user,
+                status: Status.VALIDATED
+            } as User
+            await this.usersRepository.save(updateUser)
+            const accessToken = await this.generateToken(updateUser)
+            return { updateUser, accessToken }
+        }
+        else {
+            throw new NotFoundException('Wrong OTP')
         }
     }
 
@@ -65,6 +81,7 @@ export class UserService {
             return user
         }
         else {
+            throw new NotFoundException()
         }
     }
 
@@ -78,7 +95,7 @@ export class UserService {
         }
     }
 
-    async login(user: LoginUserDTO): Promise<{ existedUser: User, accessToken: string }> {
+    async login(user: LoginUserDTO) {
         const existedUser = await this.findByEmail(user.email)
         if (!existedUser) {
             throw new NotFoundException('Not found Store Email')
@@ -86,17 +103,28 @@ export class UserService {
         if (!await bcrypt.compare(user.password, existedUser.password)) {
             throw new NotFoundException('Wrong password')
         }
-        const accessToken = await this.generateToken(existedUser)
-        return { existedUser, accessToken }
+        UserService.otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
+        this.mailService.sendUserConfirmationEmail(existedUser, UserService.otp)
     }
 
-    async findOne(id: number): Promise<{ user?: User, isSuccess: boolean }> {
+    async findOne(id: number): Promise<User> {
         const user = await this.usersRepository.findOne({ where: { id: id } })
         if (!user) {
-            return { isSuccess: false }
+            throw new NotFoundException()
         }
-        return { user, isSuccess: true }
+        return user
     }
+
+    async logout(user: User) {
+        if (!user) {
+            throw new NotFoundException()
+        }
+        this.usersRepository.save({
+            ...user,
+            status: Status.INVALIDATED
+        })
+    }
+
     async remove(id: number): Promise<void> {
         await this.usersRepository.delete(id);
     }
