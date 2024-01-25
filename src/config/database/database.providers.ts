@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Admin } from 'src/model/admin.model';
-import { Store } from 'src/model/store.model';
-import { User } from 'src/model/user.model';
+import { Admin, ExchangeGift, Gift, GiftOrder, Item, Order, OrderItem, Store, User } from 'src/model';
+;
 @Module({
     imports: [
         TypeOrmModule.forRoot({
@@ -12,7 +11,7 @@ import { User } from 'src/model/user.model';
             username: 'root',
             password: 'root',
             database: 'loyalty_data',
-            entities: [User, Store, Admin],
+            entities: [User, Store, Admin, Gift, GiftOrder, ExchangeGift, Order, OrderItem, Item],
             migrations: [`${__dirname}/src/migrations/*{.ts,.js}`],
             migrationsTableName: 'migrations',
             subscribers: [`${__dirname}/subscriber/*{.ts,.js}`],

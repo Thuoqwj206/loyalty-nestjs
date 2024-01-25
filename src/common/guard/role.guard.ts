@@ -10,9 +10,10 @@ import { UserService } from "src/module/user/user.service";
 @Injectable()
 export class RolesGuard implements CanActivate {
     constructor(private reflector: Reflector, private readonly jwt: JwtService,
-        private readonly userService: UserService,
-        private readonly adminService: AdminService,
-        private readonly storeService: StoreService) { }
+        // private readonly userService: UserService,
+        // private readonly adminService: AdminService,
+        // private readonly storeService: StoreService
+    ) { }
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const roles = this.reflector.getAllAndOverride<string[]>('roles', [context.getHandler(), context.getClass()]);
         if (!roles) {
@@ -31,13 +32,13 @@ export class RolesGuard implements CanActivate {
         );
         const userRoles = payload.role?.split(',');
         switch (userRoles[0]) {
-            case ERole.Store:
-                request.currentStore = await this.storeService.findOne(payload.id)
+            case ERole.STORE:
+                request.currentStore = payload
                 break;
-            case ERole.User:
-                request.currentUser = await this.userService.findOne(payload.id)
+            case ERole.USER:
+                request.currentUser = payload
                 break;
-            case ERole.Admin:
+            case ERole.ADMIN:
                 break;
         }
         return this.validateRoles(roles, userRoles);
