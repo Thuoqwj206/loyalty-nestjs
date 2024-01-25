@@ -4,11 +4,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { ERole } from 'src/enum/role.enum';
 import { MailService } from 'src/mail/mail.service';
-import { Status, Store } from 'src/model/store.model';
+import { Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
 import { Repository } from 'typeorm';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
+import { EStatus } from 'src/enum';
 
 @Injectable()
 export class StoreService {
@@ -50,7 +51,7 @@ export class StoreService {
         console.log(store.users)
         this.storesRepository.save({
             ...store,
-            status: Status.INVALIDATED
+            status: EStatus.INVALIDATED
         })
     }
 
@@ -92,7 +93,7 @@ export class StoreService {
             const store = await this.findByEmail(email)
             const updateStore = {
                 ...store,
-                status: Status.VALIDATED
+                status: EStatus.VALIDATED
             } as Store
             this.storesRepository.save(updateStore)
 
@@ -136,7 +137,7 @@ export class StoreService {
     }
 
     async generateToken(store: Store) {
-        const payload = { id: store?.id, email: store?.email, role: ERole.Store }
+        const payload = { id: store?.id, email: store?.email, role: ERole.STORE }
         return await this.jwtService.signAsync(payload)
     }
 }

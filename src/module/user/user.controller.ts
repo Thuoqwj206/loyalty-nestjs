@@ -15,14 +15,14 @@ import { User } from "src/model/user.model";
 export class UsersController {
     constructor(private readonly userService: UserService) { }
     @Get()
-    @Roles(ERole.Store)
+    @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     async getAll() {
         return this.userService.findAll()
     }
 
     @Post()
-    @Roles(ERole.Store)
+    @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     async register(@Body() body: RegisterUserDTO) {
         const newUser = await this.userService.create(body);
@@ -36,18 +36,23 @@ export class UsersController {
     }
 
     @Put('/logout')
-    @Roles(ERole.User)
+    @Roles(ERole.USER)
     @UseGuards(RolesGuard)
     async logout(@currentUser() user: User) {
         await this.userService.logout(user);
     }
 
     @Post('/confirm/:email')
-    @Roles(ERole.Store)
+    @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     async confirmUser(@Query('email') email: string, @Body() body: OTPConfirmDTO, @currentStore() store: Store) {
         const verifyUser = await this.userService.confirmRegisterOTP(email, body, store)
         return verifyUser
+    }
+
+    @Get('/sms')
+    async sendSMS() {
+        return this.userService.sendSMS()
     }
 
     @Post('/confirm-login/:email')

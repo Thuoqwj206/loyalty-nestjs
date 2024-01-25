@@ -1,14 +1,8 @@
-import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn, Table } from "typeorm";
+import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
 import { Store } from "./store.model";
-export enum Status {
-    VALIDATED = 'VALIDATED',
-    INVALIDATED = 'INVALIDATED'
-}
-export enum Rank {
-    BRONZE = 'BRONZE',
-    SILVER = 'SILVER',
-    GOLD = 'GOLD'
-}
+import { GiftOrder } from "./gift-order.model";
+import { EStatus, ERank } from "src/enum";
+import { Order } from "./order.model";
 @Entity('users')
 export class User extends BaseEntity {
     @PrimaryGeneratedColumn()
@@ -49,18 +43,24 @@ export class User extends BaseEntity {
 
     @Column({
         type: "enum",
-        enum: Status,
-        default: Status.INVALIDATED
+        enum: EStatus,
+        default: EStatus.INVALIDATED
     })
-    status: Status
+    status: EStatus
 
     @Column({
         type: "enum",
-        enum: Rank,
-        default: Rank.BRONZE
+        enum: ERank,
+        default: ERank.BRONZE
     })
-    Rank: Rank
+    Rank: ERank
 
     @ManyToOne(() => Store, (store) => store.users)
     store: Store
+
+    @OneToMany(() => GiftOrder, (giftOrder) => giftOrder.user)
+    giftOrders: GiftOrder[]
+
+    @OneToMany(() => Order, (order) => order.user)
+    orders: Order[]
 }

@@ -32,7 +32,7 @@ export class StoresController {
         return store;
     }
     @Put('/logout')
-    @Roles(ERole.Store)
+    @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     async logout(@currentStore() store: Store) {
         await this.storeService.logout(store);

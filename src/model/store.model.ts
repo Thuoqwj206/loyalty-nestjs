@@ -1,10 +1,9 @@
-import { BaseEntity, Column, Entity, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
+import { BaseEntity, Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
 import { User } from "./user.model";
-
-export enum Status {
-    VALIDATED = 'VALIDATED',
-    INVALIDATED = 'INVALIDATED'
-}
+import { Gift } from "./gift.model";
+import { EStatus } from "src/enum";
+import { Item } from "./item.model";
+import { Order } from "./order.model";
 
 @Entity('stores')
 export class Store extends BaseEntity {
@@ -42,11 +41,21 @@ export class Store extends BaseEntity {
 
     @Column({
         type: "enum",
-        enum: Status,
-        default: Status.INVALIDATED
+        enum: EStatus,
+        default: EStatus.INVALIDATED
     })
-    status: Status
+    status: EStatus
 
     @OneToMany(() => User, (user) => user.store)
+    @JoinColumn()
     users: User[]
+
+    @OneToMany(() => Gift, (gift) => gift.store)
+    gifts: Gift[]
+
+    @OneToMany(() => Item, (item) => item.store)
+    items: Item[]
+
+    @OneToMany(() => Order, (order) => order.store)
+    orders: Order[]
 }

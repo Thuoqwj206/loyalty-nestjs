@@ -6,10 +6,12 @@ import { MailService } from 'src/mail/mail.service';
 import { RegisterUserDTO } from './dtos/register-user.dto';
 import { User } from 'src/model/user.model';
 import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
-import { Status, Store } from 'src/model/store.model';
+import { Store } from 'src/model/store.model';
 import { StoreService } from '../store/store.service';
 import { LoginUserDTO } from './dtos/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
+import { EStatus } from 'src/enum';
+import { TwilioService } from 'nestjs-twilio';
 
 @Injectable()
 export class UserService {
@@ -17,6 +19,7 @@ export class UserService {
     constructor(
         @InjectRepository(User)
         private usersRepository: Repository<User>,
+        private readonly twilioService: TwilioService,
         private readonly mailService: MailService,
         private readonly jwtService: JwtService
     ) { }
@@ -60,12 +63,20 @@ export class UserService {
         }
     }
 
+    async sendSMS() {
+        return this.twilioService.client.messages.create({
+            body: 'Your OTP is 88888',
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: '+84866079148',
+        });
+    }
+
     async confirmLoginOTP(email: string, body: OTPConfirmDTO) {
         const user = await this.findByEmail(email)
         if (UserService.otp == body.otp) {
             const updateUser = {
                 ...user,
-                status: Status.VALIDATED
+                status: EStatus.VALIDATED
             } as User
             await this.usersRepository.save(updateUser)
             const accessToken = await this.generateToken(updateUser)
@@ -121,7 +132,7 @@ export class UserService {
         }
         this.usersRepository.save({
             ...user,
-            status: Status.INVALIDATED
+            status: EStatus.INVALIDATED
         })
     }
 
@@ -133,5 +144,6 @@ export class UserService {
         const payload = { id: user?.id, email: user?.email }
         return await this.jwtService.signAsync(payload)
     }
+
 }
 
