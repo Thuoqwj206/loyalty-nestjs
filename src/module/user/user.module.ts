@@ -9,6 +9,7 @@ import { UserService } from './user.service';
 import { StoreModule } from '../store/store.module';
 import { TwilioModule } from 'nestjs-twilio';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
     imports: [TwilioModule.forRootAsync({
@@ -18,7 +19,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
             authToken: cfg.get('TWILIO_AUTH_TOKEN'),
         }),
         inject: [ConfigService],
-    }), forwardRef(() => StoreModule), TypeOrmModule.forFeature([User]), MailModule, AdminModule],
+    }), forwardRef(() => StoreModule), TypeOrmModule.forFeature([User]), MailModule, AdminModule, CacheModule.register()],
     providers: [UserService,],
     controllers: [UsersController],
     exports: [UserService]
