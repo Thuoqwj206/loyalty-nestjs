@@ -36,6 +36,7 @@ export class UserService {
         const salt = await bcrypt?.genSalt(10)
         Body.password = await bcrypt?.hash(Body.password, salt)
         UserService.otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
+        //console.log(UserService.otp)
         const newUser = await this.usersRepository.create(Body)
         await this.usersRepository.save(newUser)
         this.mailService.sendUserConfirmationEmail(newUser, UserService.otp)
@@ -43,16 +44,15 @@ export class UserService {
 
     async confirmRegisterOTP(email: string, body: OTPConfirmDTO, store: Store) {
         const user = await this.findByEmail(email)
+        //console.log(UserService.otp)
         if (UserService.otp == body.otp) {
             const currentDate = new Date(Date.now())
             const updateUser = {
                 ...user,
-                email_verified_at: currentDate
+                email_verified_at: currentDate,
+                store: store
             } as User
-            console.log(store)
             await this.usersRepository.save(updateUser)
-            store.users?.push(updateUser)
-            await store.save()
         }
         else {
             this.usersRepository.remove(user)
