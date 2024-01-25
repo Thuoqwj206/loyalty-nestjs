@@ -10,7 +10,7 @@ import { Store } from 'src/model/store.model';
 import { StoreService } from '../store/store.service';
 import { LoginUserDTO } from './dtos/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { EStatus } from 'src/enum';
+import { ERank, EStatus } from 'src/enum';
 import { TwilioService } from 'nestjs-twilio';
 
 @Injectable()
@@ -39,7 +39,6 @@ export class UserService {
         const salt = await bcrypt?.genSalt(10)
         Body.password = await bcrypt?.hash(Body.password, salt)
         UserService.otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
-        //console.log(UserService.otp)
         const newUser = await this.usersRepository.create(Body)
         await this.usersRepository.save(newUser)
         this.mailService.sendUserConfirmationEmail(newUser, UserService.otp)
@@ -47,7 +46,6 @@ export class UserService {
 
     async confirmRegisterOTP(email: string, body: OTPConfirmDTO, store: Store) {
         const user = await this.findByEmail(email)
-        //console.log(UserService.otp)
         if (UserService.otp == body.otp) {
             const currentDate = new Date(Date.now())
             const updateUser = {
@@ -124,6 +122,54 @@ export class UserService {
             throw new NotFoundException()
         }
         return user
+    }
+
+    async accumulatePoint(user: User, price: number): Promise<User> {
+        let point = user.point
+        point += Math.floor(price)
+        let bonus = 0
+        if (100 < price && price < 200) {
+            bonus = Math.floor(price * 0.1)
+            if (bonus > 5) {
+                bonus = 5
+            }
+        }
+        else if (200 < price) {
+            bonus = Math.floor(price * 0.2)
+            if (bonus > 10) {
+                bonus = 10
+            }
+        }
+        switch (user.Rank) {
+            case ERank.BRONZE: {
+                bonus += Math.floor((price / 100)) * 5
+                point += bonus
+                if (point >= 2000 && point < 5000) {
+                    user.Rank = ERank.SILVER
+                }
+                else if (point >= 5000) {
+                    user.Rank = ERank.GOLD
+                }
+                break
+            }
+            case ERank.SILVER: {
+                bonus += Math.floor((price / 100)) * 10
+                point += bonus
+                if (point >= 5000) {
+                    user.Rank = ERank.GOLD
+                }
+                break
+            }
+            case ERank.GOLD: {
+                bonus += Math.floor((price / 100)) * 15
+                point += bonus
+                break
+            }
+        }
+        return await this.usersRepository.save({
+            ...user,
+            point
+        })
     }
 
     async logout(user: User) {

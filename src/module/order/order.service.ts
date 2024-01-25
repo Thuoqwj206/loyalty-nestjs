@@ -1,10 +1,11 @@
-import { Inject, Injectable, NotFoundException, forwardRef } from "@nestjs/common";
+import { Inject, Injectable, NotAcceptableException, NotFoundException, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Order, OrderItem } from "src/model";
+import { Order, OrderItem, Store } from "src/model";
 import { Repository } from "typeorm";
 import { OrderItemService } from "../order-item/order-item.service";
 import { StoreService } from "../store/store.service";
 import { UserService } from "../user/user.service";
+import { ItemService } from "../item/item.service";
 
 @Injectable()
 export class OrderService {
@@ -13,6 +14,7 @@ export class OrderService {
         private orderRepository: Repository<Order>,
         private readonly storeService: StoreService,
         private readonly userService: UserService,
+        private readonly itemService: ItemService,
         @Inject(forwardRef(() => OrderItemService))
         private readonly orderItemService: OrderItemService
     ) { }
@@ -42,21 +44,35 @@ export class OrderService {
         return null
     }
 
-    async createNewOrder(userId: number, storeId: number) {
+    async createNewOrder(userId: number, store: Store) {
         const user = await this.userService.findOne(userId)
         if (!user) {
             throw new NotFoundException('Not found User')
         }
-        const store = await this.storeService.findOne(storeId)
+        const targetStore = await this.storeService.findOne(store.id)
         const newOrder = this.orderRepository.create({
             user: user,
-            store: store,
+            store: targetStore,
         })
         await this.orderRepository.save(newOrder)
     }
 
     async completeOrder(id: number) {
-        const order = await this.orderRepository.findOne({ where: { id } })
+        const order = await this.orderRepository.findOne({ relations: ['user', 'store'], where: { id } })
+        if (order.totalPrice != 0) {
+            throw new NotAcceptableException('Order can not be override')
+        }
+        const orderItems = await this.orderItemService.findItemsOfOrder(order)
+        orderItems.map(async (orderItem) => {
+            order.totalPrice += (orderItem.item?.price * orderItem.quantity)
+            await this.itemService.reduceQuantity(orderItem.item.id, orderItem.quantity)
+        })
+        order.user = await this.userService.accumulatePoint(order.user, order.totalPrice)
+        return await this.orderRepository.save({
+            ...order,
+            orderItems,
+            createDate: new Date()
+        })
     }
 
 }   

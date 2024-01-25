@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotAcceptableException, NotFoundException, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { OrderItem } from "src/model";
+import { Order, OrderItem } from "src/model";
 import { Repository } from "typeorm";
 import { ItemService } from "../item/item.service";
 import { StoreService } from "../store/store.service";
@@ -27,7 +27,15 @@ export class OrderItemService {
         return null
     }
 
-    async createOrderItem(id: number, body: CreateOrderItemDTO) {
+    async findItemsOfOrder(order: Order): Promise<OrderItem[]> {
+        const orders = await this.orderItemRepository.find({ relations: ['item'], where: { order: order } });
+        if (orders) {
+            return orders
+        }
+        return null
+    }
+
+    async addOrderItem(id: number, body: CreateOrderItemDTO) {
         const { itemId, quantity } = body
         const item = await this.itemService.findOne(itemId)
         if (!item) {

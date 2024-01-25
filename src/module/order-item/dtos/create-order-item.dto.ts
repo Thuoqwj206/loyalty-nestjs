@@ -1,4 +1,4 @@
-import { IsEmail, IsNumber, IsPhoneNumber, IsString } from "class-validator";
+import { IsNumber } from "class-validator";
 
 export class CreateOrderItemDTO {
     @IsNumber()
