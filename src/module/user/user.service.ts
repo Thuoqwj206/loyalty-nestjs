@@ -174,27 +174,15 @@ export class UserService {
         }
         switch (user.Rank) {
             case ERank.BRONZE: {
-                bonus += Math.floor((price / 100)) * 5
-                point += bonus
-                if (point >= 2000 && point < 5000) {
-                    user.Rank = ERank.SILVER
-                }
-                else if (point >= 5000) {
-                    user.Rank = ERank.GOLD
-                }
+                this.handleBronzeUpperRank(user, point, bonus, price)
                 break
             }
             case ERank.SILVER: {
-                bonus += Math.floor((price / 100)) * 10
-                point += bonus
-                if (point >= 5000) {
-                    user.Rank = ERank.GOLD
-                }
+                this.handleBSilverUpperRank(user, point, bonus, price)
                 break
             }
             case ERank.GOLD: {
-                bonus += Math.floor((price / 100)) * 15
-                point += bonus
+                this.handleGoldUpperRank(point, bonus, price)
                 break
             }
         }
@@ -204,6 +192,28 @@ export class UserService {
         })
     }
 
+    async handleBronzeUpperRank(user: User, point: number, bonus: number, price: number) {
+        bonus += Math.floor((price / 100)) * 5
+        point += bonus
+        if (point >= 2000 && point < 5000) {
+            user.Rank = ERank.SILVER
+        }
+        else if (point >= 5000) {
+            user.Rank = ERank.GOLD
+        }
+    }
+    async handleBSilverUpperRank(user: User, point: number, bonus: number, price: number) {
+        bonus += Math.floor((price / 100)) * 10
+        point += bonus
+        if (point >= 5000) {
+            user.Rank = ERank.GOLD
+        }
+    }
+
+    async handleGoldUpperRank(point: number, bonus: number, price: number) {
+        bonus += Math.floor((price / 100)) * 15
+        point += bonus
+    }
 
     async logout(user: User) {
         if (!user) {
