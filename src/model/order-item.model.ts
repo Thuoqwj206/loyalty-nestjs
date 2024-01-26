@@ -1,4 +1,4 @@
-import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Item } from "./item.model";
 import { Order } from "./order.model";
 
@@ -8,9 +8,11 @@ export class OrderItem extends BaseEntity {
     public orderItemId: number
 
     @ManyToOne(() => Order, order => order.orderItems)
+    @JoinColumn()
     order: Order;
 
     @ManyToOne(() => Item, item => item.orderItems)
+    @JoinColumn()
     item: Item;
 
     @Column({

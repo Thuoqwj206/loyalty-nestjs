@@ -10,7 +10,7 @@ export class Order extends BaseEntity {
     id: number
 
     @Column({
-        type: 'int',
+        type: 'double',
         default: 0
     })
     totalPrice: number

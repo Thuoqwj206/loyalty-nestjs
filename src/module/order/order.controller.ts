@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { RolesGuard } from "src/common/guard/role.guard";
 import { currentStore } from "src/decorator/current-store.decorator";
 import { Roles } from "src/decorator/role.decorator";
 import { ERole } from "src/enum";
 import { CreateOrderDTO } from "./dtos";
 import { OrderService } from "./order.service";
+import { Store } from "src/model";
 
 @Controller('/order')
 export class OrderController {
@@ -16,17 +17,19 @@ export class OrderController {
     }
 
     @Get('/:id')
-    async findStoreOrder(@Query('id') id: number) {
+    async findStoreOrder(@Param('id') id: number) {
         return await this.orderService.findStoreOrder(id)
     }
 
-    @Put('/:id/add-quantity')
-    async addQuantity(@Query('id') id: number, quantity: number) {
-        return await this.addQuantity(id, quantity)
+    @Post('/:userId/new')
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    async createNewOrder(@Param('userId') id: number, @currentStore() store: Store) {
+        return await this.orderService.createNewOrder(id, store)
     }
 
-    @Put('/:id/reduce-quantity')
-    async reduceQuantity(@Query('id') id: number, quantity: number) {
-        return await this.reduceQuantity(id, quantity)
+    @Post('/:id/complete')
+    async completeOrder(@Param('id') id: number) {
+        return await this.orderService.completeOrder(id)
     }
 }
