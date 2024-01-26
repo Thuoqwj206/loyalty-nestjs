@@ -1,19 +1,17 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, Body, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { RedisService } from 'nestjs-redis';
+import { Cache } from 'cache-manager';
 import { TwilioService } from 'nestjs-twilio';
 import { ERank, EStatus } from 'src/enum';
-import { MailService } from 'src/mail/mail.service';
 import { Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
 import { Repository } from 'typeorm';
 import { LoginUserDTO } from './dtos/login-user.dto';
 import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
 import { RegisterUserDTO } from './dtos/register-user.dto';
-import { Cache } from 'cache-manager'
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 @Injectable()
 export class UserService {
     constructor(
@@ -21,7 +19,6 @@ export class UserService {
         private usersRepository: Repository<User>,
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
         private readonly twilioService: TwilioService,
-        private readonly mailService: MailService,
         private readonly jwtService: JwtService,
 
     ) { }
@@ -45,6 +42,7 @@ export class UserService {
         await this.usersRepository.save(newUser)
         await this.cacheManager.set(newUser.id, otp, 60000)
         await this.sendSMS(otp, newUser.phone)
+        await this.cacheManager.set(otp, 1, 30000)
         return { isSuccess: true }
     }
 
@@ -66,7 +64,7 @@ export class UserService {
             const currentDate = new Date(Date.now())
             const updateUser = {
                 ...user,
-                email_verified_at: currentDate,
+                verified_at: currentDate,
                 store: store
             } as User
             const ReturnUserDTO = {
@@ -75,27 +73,46 @@ export class UserService {
                 phone: updateUser.phone,
             }
             await this.usersRepository.save(updateUser)
+            await this.cacheManager.del(storedOTP)
+            await this.cacheManager.del(user?.id)
             return ReturnUserDTO
         }
         else {
-            this.usersRepository.remove(user)
-            throw new NotFoundException()
+            const currentTry = await this.cacheManager.get(storedOTP)
+            await this.cacheManager.set(storedOTP, currentTry + 1)
+            if (await this.cacheManager.get(storedOTP) > 3) {
+                await this.usersRepository.remove(user)
+                throw new NotFoundException('Not Found User')
+            }
+            else { return `Wrong OTP, you have ${3 - currentTry} times left` }
         }
     }
-    async confirmLoginOTP(email: string, body: OTPConfirmDTO) {
-        const user = await this.findByEmail(email)
-        const storedOTP = await this.cacheManager.get(user.id)
+    async confirmLoginOTP(body: OTPConfirmDTO) {
+        const user = await this.findByEmail(body.email)
+        const storedOTP = await this.cacheManager.get(user?.id)
         if (storedOTP == body.otp) {
             const updateUser = {
                 ...user,
                 status: EStatus.VALIDATED
             } as User
             await this.usersRepository.save(updateUser)
+            const ReturnUserDTO = {
+                name: updateUser.name,
+                email: updateUser.email,
+                phone: updateUser.phone,
+            }
             const accessToken = await this.generateToken(updateUser)
-            return { updateUser, accessToken }
+            await this.cacheManager.del(storedOTP)
+            await this.cacheManager.del(user?.id)
+            return { ReturnUserDTO, accessToken }
         }
         else {
-            throw new NotFoundException('Wrong OTP')
+            const currentTry = await this.cacheManager.get(storedOTP)
+            await this.cacheManager.set(storedOTP, currentTry + 1)
+            if (await this.cacheManager.get(storedOTP) > 3) {
+                throw new NotFoundException('Cook')
+            }
+            else { return `Wrong OTP, you have ${3 - currentTry} times left` }
         }
     }
 
@@ -127,6 +144,7 @@ export class UserService {
             throw new NotFoundException('Wrong password')
         }
         const otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
+        await this.cacheManager.set(existedUser.id, otp, 60000)
         await this.sendSMS(otp, existedUser.phone)
     }
 
@@ -156,27 +174,15 @@ export class UserService {
         }
         switch (user.Rank) {
             case ERank.BRONZE: {
-                bonus += Math.floor((price / 100)) * 5
-                point += bonus
-                if (point >= 2000 && point < 5000) {
-                    user.Rank = ERank.SILVER
-                }
-                else if (point >= 5000) {
-                    user.Rank = ERank.GOLD
-                }
+                this.handleBronzeUpperRank(user, point, bonus, price)
                 break
             }
             case ERank.SILVER: {
-                bonus += Math.floor((price / 100)) * 10
-                point += bonus
-                if (point >= 5000) {
-                    user.Rank = ERank.GOLD
-                }
+                this.handleBSilverUpperRank(user, point, bonus, price)
                 break
             }
             case ERank.GOLD: {
-                bonus += Math.floor((price / 100)) * 15
-                point += bonus
+                this.handleGoldUpperRank(point, bonus, price)
                 break
             }
         }
@@ -186,6 +192,28 @@ export class UserService {
         })
     }
 
+    async handleBronzeUpperRank(user: User, point: number, bonus: number, price: number) {
+        bonus += Math.floor((price / 100)) * 5
+        point += bonus
+        if (point >= 2000 && point < 5000) {
+            user.Rank = ERank.SILVER
+        }
+        else if (point >= 5000) {
+            user.Rank = ERank.GOLD
+        }
+    }
+    async handleBSilverUpperRank(user: User, point: number, bonus: number, price: number) {
+        bonus += Math.floor((price / 100)) * 10
+        point += bonus
+        if (point >= 5000) {
+            user.Rank = ERank.GOLD
+        }
+    }
+
+    async handleGoldUpperRank(point: number, bonus: number, price: number) {
+        bonus += Math.floor((price / 100)) * 15
+        point += bonus
+    }
 
     async logout(user: User) {
         if (!user) {

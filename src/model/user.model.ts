@@ -39,7 +39,7 @@ export class User extends BaseEntity {
         type: "timestamp",
         default: null
     })
-    email_verified_at: Date
+    verified_at: Date
 
     @Column({
         type: "enum",

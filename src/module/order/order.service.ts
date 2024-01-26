@@ -6,6 +6,7 @@ import { OrderItemService } from "../order-item/order-item.service";
 import { StoreService } from "../store/store.service";
 import { UserService } from "../user/user.service";
 import { ItemService } from "../item/item.service";
+import { CreateOrderItemDTO } from "../order-item/dtos";
 
 @Injectable()
 export class OrderService {
@@ -15,7 +16,6 @@ export class OrderService {
         private readonly storeService: StoreService,
         private readonly userService: UserService,
         private readonly itemService: ItemService,
-        @Inject(forwardRef(() => OrderItemService))
         private readonly orderItemService: OrderItemService
     ) { }
 
@@ -73,6 +73,20 @@ export class OrderService {
             orderItems,
             createDate: new Date()
         })
+    }
+
+    async addOrderItem(id: number, body: CreateOrderItemDTO) {
+        const { itemId, quantity } = body
+        const item = await this.itemService.findOne(itemId)
+        if (!item) {
+            throw new NotFoundException('Not found that item')
+        }
+        if (quantity > item.quantityAvailable) {
+            throw new NotAcceptableException(`Item ${item.name} does not have enough`)
+        }
+        const order = await this.orderRepository.findOne({ where: { id } })
+        const newOrderItem = this.orderItemService.createOrderItem(order, quantity, item)
+        return newOrderItem
     }
 
 }   

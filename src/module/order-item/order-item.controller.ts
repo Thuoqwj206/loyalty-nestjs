@@ -10,9 +10,4 @@ export class OrderItemController {
     async findAll() {
         return await this.orderItemService.findAll()
     }
-
-    @Post('/:id')
-    async addOrderItem(@Body() body: CreateOrderItemDTO, @Param('id') id: number) {
-        return await this.orderItemService.addOrderItem(id, body)
-    }
 }
