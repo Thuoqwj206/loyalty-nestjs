@@ -4,6 +4,7 @@ import { Gift } from "./gift.model";
 import { EStatus } from "src/enum";
 import { Item } from "./item.model";
 import { Order } from "./order.model";
+import { GiftOrder } from "./gift-order.model";
 
 @Entity('stores')
 export class Store extends BaseEntity {
@@ -58,4 +59,7 @@ export class Store extends BaseEntity {
 
     @OneToMany(() => Order, (order) => order.store)
     orders: Order[]
+
+    @OneToMany(() => GiftOrder, (giftOrder) => giftOrder.store)
+    giftOrders: GiftOrder[]
 }

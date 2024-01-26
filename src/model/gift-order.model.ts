@@ -1,7 +1,7 @@
 import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
 import { Store } from "./store.model";
 import { User } from "./user.model";
-import { ExchangeGift } from "./exchange-gift.model";
+import { GiftExchange } from "./gift-exchange.model";
 
 @Entity('gift-orders')
 export class GiftOrder extends BaseEntity {
@@ -22,6 +22,9 @@ export class GiftOrder extends BaseEntity {
     @ManyToOne(() => User, (user) => user.giftOrders)
     user: User
 
-    @OneToMany(() => ExchangeGift, (exchangeGift) => exchangeGift.giftOrder)
-    exchangeGifts: ExchangeGift[];
+    @ManyToOne(() => Store, (store) => store.orders)
+    store: Store
+
+    @OneToMany(() => GiftExchange, (giftExchange) => giftExchange.giftOrder)
+    exchangeGifts: GiftExchange[];
 }

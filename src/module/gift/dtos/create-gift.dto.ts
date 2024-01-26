@@ -1,4 +1,4 @@
-import { IsEmail, IsNumber, IsPhoneNumber, IsString } from "class-validator";
+import { IsDate, IsNumber, IsString } from "class-validator";
 
 export class CreateGiftDTO {
     @IsString()
@@ -8,7 +8,10 @@ export class CreateGiftDTO {
     image: string
 
     @IsNumber()
-    price: number
+    pointRequired: number
+
+    @IsDate()
+    expirationDate: Date
 
     @IsNumber()
     quantityAvailable: number

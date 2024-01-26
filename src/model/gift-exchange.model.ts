@@ -2,8 +2,8 @@ import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "t
 import { GiftOrder } from "./gift-order.model";
 import { Gift } from "./gift.model";
 
-@Entity('exchange-gifts')
-export class ExchangeGift extends BaseEntity {
+@Entity('gift-exchanges')
+export class GiftExchange extends BaseEntity {
     @PrimaryGeneratedColumn()
     public exchangeGiftId: number
 
