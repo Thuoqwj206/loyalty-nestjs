@@ -1,27 +1,29 @@
-import { BadRequestException, Body, Inject, Injectable, NotFoundException, Param, Redirect, UnauthorizedException, forwardRef } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt'
-import { MailService } from 'src/mail/mail.service';
-import { RegisterUserDTO } from './dtos/register-user.dto';
-import { User } from 'src/model/user.model';
-import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
-import { Store } from 'src/model/store.model';
-import { StoreService } from '../store/store.service';
-import { LoginUserDTO } from './dtos/login-user.dto';
+import { BadRequestException, Body, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ERank, EStatus } from 'src/enum';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
+import { RedisService } from 'nestjs-redis';
 import { TwilioService } from 'nestjs-twilio';
-
+import { ERank, EStatus } from 'src/enum';
+import { MailService } from 'src/mail/mail.service';
+import { Store } from 'src/model/store.model';
+import { User } from 'src/model/user.model';
+import { Repository } from 'typeorm';
+import { LoginUserDTO } from './dtos/login-user.dto';
+import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
+import { RegisterUserDTO } from './dtos/register-user.dto';
+import { Cache } from 'cache-manager'
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 @Injectable()
 export class UserService {
-    static otp: string;
     constructor(
         @InjectRepository(User)
         private usersRepository: Repository<User>,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
         private readonly twilioService: TwilioService,
         private readonly mailService: MailService,
-        private readonly jwtService: JwtService
+        private readonly jwtService: JwtService,
+
     ) { }
 
     async findAll(): Promise<User[]> {
@@ -38,40 +40,52 @@ export class UserService {
         }
         const salt = await bcrypt?.genSalt(10)
         Body.password = await bcrypt?.hash(Body.password, salt)
-        UserService.otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
+        const otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
         const newUser = await this.usersRepository.create(Body)
         await this.usersRepository.save(newUser)
-        this.mailService.sendUserConfirmationEmail(newUser, UserService.otp)
+        await this.cacheManager.set(newUser.id, otp, 60000)
+        await this.sendSMS(otp, newUser.phone)
+        return { isSuccess: true }
     }
 
-    async confirmRegisterOTP(email: string, body: OTPConfirmDTO, store: Store) {
-        const user = await this.findByEmail(email)
-        if (UserService.otp == body.otp) {
+
+    async sendSMS(otp: string, number: string) {
+        return this.twilioService.client.messages.create({
+            body: `Your OTP is ${otp}`,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: number,
+        });
+    }
+    async confirmRegisterOTP(body: OTPConfirmDTO, store: Store) {
+        const user = await this.findByEmail(body.email)
+        if (!user) {
+            throw new NotFoundException('Not found User')
+        }
+        const storedOTP = await this.cacheManager.get(user?.id)
+        if (storedOTP == body.otp) {
             const currentDate = new Date(Date.now())
             const updateUser = {
                 ...user,
                 email_verified_at: currentDate,
                 store: store
             } as User
+            const ReturnUserDTO = {
+                name: updateUser.name,
+                email: updateUser.email,
+                phone: updateUser.phone,
+            }
             await this.usersRepository.save(updateUser)
+            return ReturnUserDTO
         }
         else {
             this.usersRepository.remove(user)
             throw new NotFoundException()
         }
     }
-
-    async sendSMS() {
-        return this.twilioService.client.messages.create({
-            body: 'Your OTP is 88888',
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: '+84866079148',
-        });
-    }
-
     async confirmLoginOTP(email: string, body: OTPConfirmDTO) {
         const user = await this.findByEmail(email)
-        if (UserService.otp == body.otp) {
+        const storedOTP = await this.cacheManager.get(user.id)
+        if (storedOTP == body.otp) {
             const updateUser = {
                 ...user,
                 status: EStatus.VALIDATED
@@ -112,8 +126,8 @@ export class UserService {
         if (!await bcrypt.compare(user.password, existedUser.password)) {
             throw new NotFoundException('Wrong password')
         }
-        UserService.otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
-        this.mailService.sendUserConfirmationEmail(existedUser, UserService.otp)
+        const otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
+        await this.sendSMS(otp, existedUser.phone)
     }
 
     async findOne(id: number): Promise<User> {
@@ -171,6 +185,7 @@ export class UserService {
             point
         })
     }
+
 
     async logout(user: User) {
         if (!user) {
