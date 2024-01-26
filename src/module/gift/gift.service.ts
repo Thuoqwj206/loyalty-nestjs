@@ -4,7 +4,6 @@ import { Gift, Store } from "src/model";
 import { Repository } from "typeorm";
 import { StoreService } from "../store/store.service";
 import { CreateGiftDTO } from "./dtos";
-import { AdjustQuantityDTO } from "./dtos/ajust-quantity.dto";
 
 @Injectable()
 export class GiftService {

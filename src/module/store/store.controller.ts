@@ -7,6 +7,7 @@ import { currentStore } from "src/decorator/current-store.decorator";
 import { RolesGuard } from "src/common/guard/role.guard";
 import { Roles } from "src/decorator/role.decorator";
 import { ERole } from "src/enum/role.enum";
+import { Response } from "express";
 
 @Controller('store')
 export class StoresController {
@@ -21,15 +22,15 @@ export class StoresController {
     }
 
     @Post()
-    async register(@Body() body: RegisterStoreDTO) {
-        const newStore = await this.storeService.create(body);
-        return newStore;
+    async register(@Res() res: Response, @Body() body: RegisterStoreDTO) {
+        await this.storeService.create(body);
+        res.status(200).json('The verification link is sent to your email. Please confirm it')
     }
 
     @Post('/login')
-    async login(@Body() body: LoginStoreDTO) {
-        const store = await this.storeService.login(body);
-        return store;
+    async login(@Res() res: Response, @Body() body: LoginStoreDTO) {
+        await this.storeService.login(body);
+        res.status(200).json('Please waiting for confirmation from admin')
     }
     @Put('/logout')
     @Roles(ERole.STORE)
@@ -45,11 +46,8 @@ export class StoresController {
     }
 
     @Get('/confirm')
-    async confirmStore(@Res() res, @Query('email') email: string, @Query('token') token: string) {
+    async confirmStore(@Res() res: Response, @Query('email') email: string, @Query('token') token: string) {
         const verifyStore = await this.storeService.confirmStore(email, token)
-        if (verifyStore) {
-            res.status(201).json(verifyStore)
-        }
-        return verifyStore
+        res.status(201).json(verifyStore)
     }
 }

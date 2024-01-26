@@ -5,7 +5,6 @@ import { Roles } from "src/decorator/role.decorator";
 import { ERole } from "src/enum";
 import { CreateGiftDTO } from "./dtos";
 import { GiftService } from "./gift.service";
-import { AdjustQuantityDTO } from "./dtos/ajust-quantity.dto";
 
 @Controller('/gift')
 export class GiftController {

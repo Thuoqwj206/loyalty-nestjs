@@ -66,7 +66,6 @@ export class StoreService {
         await this.storesRepository.save(newStore)
         const token = await bcrypt?.hash(newStore.email, salt)
         this.mailService.sendStoreConfirmationEmail(newStore, token)
-
     }
 
     async verifyEmail(email: string, token: string) {
@@ -79,7 +78,13 @@ export class StoreService {
                 email_verified_at: currentDate
             }
             this.storesRepository.save(updateStore)
-            return this.storesRepository.save(updateStore)
+            const returnStore = {
+                name: updateStore.name,
+                phone: updateStore.phone,
+                email: updateStore.email
+            }
+            await this.storesRepository.save(updateStore)
+            return returnStore
         }
         else {
             throw new NotFoundException('Please recheck your email')
@@ -95,9 +100,13 @@ export class StoreService {
                 status: EStatus.VALIDATED
             } as Store
             this.storesRepository.save(updateStore)
-
+            const returnStore = {
+                name: updateStore.name,
+                phone: updateStore.phone,
+                email: updateStore.email
+            }
             const accessToken = await this.generateToken(updateStore)
-            return { updateStore, accessToken }
+            return { returnStore, accessToken }
         }
     }
 
