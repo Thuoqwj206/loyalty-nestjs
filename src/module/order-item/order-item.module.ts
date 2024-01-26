@@ -12,7 +12,7 @@ import { OrderItem } from 'src/model';
 import { OrderModule } from '../order/order.module';
 
 @Module({
-    imports: [ItemModule, forwardRef(() => OrderModule), JwtModule.register(jwtConfig), TypeOrmModule.forFeature([OrderItem]), AdminModule, StoreModule],
+    imports: [JwtModule.register(jwtConfig), TypeOrmModule.forFeature([OrderItem]), AdminModule, StoreModule],
     providers: [OrderItemService],
     controllers: [OrderItemController],
     exports: [OrderItemService]

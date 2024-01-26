@@ -13,7 +13,7 @@ import { AdminModule } from '../admin/admin.module';
 
 @Module({
     imports: [UserModule, JwtModule.register(jwtConfig), TypeOrmModule.forFeature([Store]), MailModule, AdminModule],
-    providers: [StoreService,],
+    providers: [StoreService],
     controllers: [StoresController],
     exports: [StoreService]
 })

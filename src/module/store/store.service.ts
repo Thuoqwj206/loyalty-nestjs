@@ -48,7 +48,6 @@ export class StoreService {
         if (!store) {
             throw new NotFoundException()
         }
-
         this.storesRepository.save({
             ...store,
             status: EStatus.INVALIDATED

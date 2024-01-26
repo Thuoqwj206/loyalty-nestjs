@@ -57,8 +57,8 @@ export class UsersController {
     // }
 
     @Post('/verify-otp/login')
-    async confirmLogin(@Query('email') email: string, @Body() body: OTPConfirmDTO) {
-        const verifyUser = await this.userService.confirmLoginOTP(email, body)
+    async confirmLogin(@Body() body: OTPConfirmDTO) {
+        const verifyUser = await this.userService.confirmLoginOTP(body)
         return verifyUser
     }
 }   
