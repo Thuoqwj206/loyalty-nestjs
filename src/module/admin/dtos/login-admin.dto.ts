@@ -1,12 +1,13 @@
 import { IsEmail, IsNotEmpty, IsString, IsStrongPassword } from "class-validator";
+import { USER_MESSAGES } from "src/common/messages";
 
 export class LoginAdminDTO {
 
     @IsEmail()
-    @IsNotEmpty({ message: 'Please enter a valid value' })
+    @IsNotEmpty({ message: USER_MESSAGES.EMPTY_EMAIL })
     email: string
 
-    @IsString({ message: 'Please enter a password' })
+    @IsString({ message: USER_MESSAGES.EMPTY_PASSWORD })
     @IsStrongPassword()
     password: string
 } 

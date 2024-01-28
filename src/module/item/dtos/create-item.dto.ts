@@ -1,20 +1,21 @@
 import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsPhoneNumber, IsString } from "class-validator";
+import { ITEM_MESSAGES } from "src/common/messages/item.message";
 
 export class CreateItemDTO {
-    @IsString({ message: 'Please Enter Valid Name' })
-    @IsNotEmpty({ message: 'Please Enter A Name' })
+    @IsString({ message: ITEM_MESSAGES.INVALID_NAME })
+    @IsNotEmpty({ message: ITEM_MESSAGES.EMPTY_NAME })
     name: string
 
-    @IsString({ message: 'Please enter a valid input' })
+    @IsString({ message: ITEM_MESSAGES.INVALID_IMAGE })
     @IsOptional()
     image: string
 
     @IsNumber()
-    @IsNotEmpty({ message: 'Please enter a number' })
+    @IsNotEmpty({ message: ITEM_MESSAGES.EMPTY_PRICE })
     price: number
 
     @IsNumber()
-    @IsNotEmpty({ message: 'Please enter a number' })
+    @IsNotEmpty({ message: ITEM_MESSAGES.EMPTY_QUANTITY_AVAILABLE })
     quantityAvailable: number
 }
 

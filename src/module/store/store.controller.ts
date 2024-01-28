@@ -8,6 +8,7 @@ import { RolesGuard } from "src/common/guard/role.guard";
 import { Roles } from "src/decorator/role.decorator";
 import { ERole } from "src/enum/role.enum";
 import { Response } from "express";
+import { STORE_MESSAGES } from "src/common/messages";
 
 @Controller('store')
 export class StoresController {
@@ -24,13 +25,13 @@ export class StoresController {
     @Post()
     async register(@Res() res: Response, @Body() body: RegisterStoreDTO) {
         await this.storeService.create(body);
-        res.status(200).json('The verification link is sent to your email. Please confirm it')
+        res.status(200).json(STORE_MESSAGES.SENT_EMAIL)
     }
 
     @Post('/login')
     async login(@Res() res: Response, @Body() body: LoginStoreDTO) {
         await this.storeService.login(body);
-        res.status(200).json('Please waiting for confirmation from admin')
+        res.status(200).json(STORE_MESSAGES.WAIT_FOR_ADMIN)
     }
     @Put('/logout')
     @Roles(ERole.STORE)
@@ -38,7 +39,6 @@ export class StoresController {
     async logout(@currentStore() store: Store) {
         await this.storeService.logout(store);
     }
-
     @Get('/verify')
     async verifyEmail(@Query('email') email: string, @Query('token') token: string) {
         const verifyEmail = await this.storeService.verifyEmail(email, token)

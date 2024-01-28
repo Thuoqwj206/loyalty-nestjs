@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
 import { EStatus } from 'src/enum';
+import { STORE_MESSAGES } from 'src/common/messages';
 
 @Injectable()
 export class StoreService {
@@ -35,10 +36,10 @@ export class StoreService {
     async login(store: LoginStoreDTO) {
         const existedStore = await this.findByEmail(store.email)
         if (!existedStore) {
-            throw new NotFoundException('Not found Store Email')
+            throw new NotFoundException(STORE_MESSAGES.NOT_FOUND_STORE_EMAIL)
         }
         if (!await bcrypt.compare(store.password, existedStore.password)) {
-            throw new NotFoundException('Wrong password')
+            throw new NotFoundException(STORE_MESSAGES.WRONG_PASSWORD)
         }
         const hashed = await bcrypt.hash(existedStore.email, 10)
         this.mailService.sendRequestAdminConfirm(existedStore, hashed)
@@ -57,7 +58,7 @@ export class StoreService {
     async create(@Body() Body: RegisterStoreDTO) {
         const store = await this.findByName(Body.name)
         if (store) {
-            throw new BadRequestException('Store already existed')
+            throw new BadRequestException(STORE_MESSAGES.STORE_ALREADY_EXISTED)
         }
         const salt = await bcrypt?.genSalt(10)
         const hashedPassword = await bcrypt?.hash(Body.password, salt)
@@ -87,7 +88,7 @@ export class StoreService {
             return returnStore
         }
         else {
-            throw new NotFoundException('Please recheck your email')
+            throw new NotFoundException(STORE_MESSAGES.PLEASE_RECHECK_EMAIL)
         }
     }
 

@@ -28,8 +28,8 @@ export class GiftController {
     }
 
     @Put('/:id/add')
-    async addQuantity(@Param('id') id: number, @Body() quantity: number) {
-        return await this.giftService.addQuantity(id, quantity)
+    async addQuantity(@Param('id') id: number, @Body() body) {
+        return await this.giftService.addQuantity(id, body)
     }
 
     @Put('/:id/reduce')

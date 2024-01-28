@@ -1,18 +1,19 @@
 import { IsEmail, IsNotEmpty, IsPhoneNumber, IsString } from "class-validator";
+import { USER_MESSAGES } from "src/common/messages";
 
 export class RegisterUserDTO {
     @IsString()
     name: string
 
-    @IsNotEmpty({ message: 'Please enter a valid value' })
+    @IsNotEmpty({ message: USER_MESSAGES.EMPTY_PHONE })
     @IsPhoneNumber()
     phone: string
 
     @IsEmail()
-    @IsNotEmpty({ message: 'Please enter a valid value' })
+    @IsNotEmpty({ message: USER_MESSAGES.EMPTY_EMAIL })
     email: string
 
     @IsString()
-    @IsNotEmpty({ message: 'Please enter a valid value' })
+    @IsNotEmpty({ message: USER_MESSAGES.EMPTY_PASSWORD })
     password: string
 }
