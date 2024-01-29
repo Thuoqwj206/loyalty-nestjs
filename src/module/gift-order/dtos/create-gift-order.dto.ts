@@ -1,9 +1,8 @@
 import { IsEmail, IsNotEmpty, IsNumber, IsPhoneNumber, IsString } from "class-validator";
 
-export class CreateOrderDTO {
+export class CreateGiftOrderDTO {
     @IsNumber()
     @IsNotEmpty()
-
     userId: number
 
     @IsNotEmpty()

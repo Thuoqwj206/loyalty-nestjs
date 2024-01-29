@@ -1,5 +1,4 @@
 import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { ExchangeGift } from "./exchange-gift.model";
 import { User } from "./user.model";
 import { OrderItem } from "./order-item.model";
 import { Store } from "./store.model";

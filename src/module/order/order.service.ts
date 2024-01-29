@@ -7,6 +7,8 @@ import { StoreService } from "../store/store.service";
 import { UserService } from "../user/user.service";
 import { ItemService } from "../item/item.service";
 import { CreateOrderItemDTO } from "../order-item/dtos";
+import { ORDER_MESSAGES, USER_MESSAGES } from "src/common/messages";
+import { ITEM_MESSAGES } from "src/common/messages/item.message";
 
 @Injectable()
 export class OrderService {
@@ -47,7 +49,7 @@ export class OrderService {
     async createNewOrder(userId: number, store: Store) {
         const user = await this.userService.findOne(userId)
         if (!user) {
-            throw new NotFoundException('Not found User')
+            throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
         }
         const targetStore = await this.storeService.findOne(store.id)
         const newOrder = this.orderRepository.create({
@@ -60,7 +62,7 @@ export class OrderService {
     async completeOrder(id: number) {
         const order = await this.orderRepository.findOne({ relations: ['user', 'store'], where: { id } })
         if (order.totalPrice != 0) {
-            throw new NotAcceptableException('Order can not be override')
+            throw new NotAcceptableException(ORDER_MESSAGES.ORDER_CANNOT_OVERRIDE)
         }
         const orderItems = await this.orderItemService.findItemsOfOrder(order)
         orderItems.map(async (orderItem) => {
@@ -79,10 +81,10 @@ export class OrderService {
         const { itemId, quantity } = body
         const item = await this.itemService.findOne(itemId)
         if (!item) {
-            throw new NotFoundException('Not found that item')
+            throw new NotFoundException(ITEM_MESSAGES.NOT_FOUND)
         }
         if (quantity > item.quantityAvailable) {
-            throw new NotAcceptableException(`Item ${item.name} does not have enough`)
+            throw new NotAcceptableException(ITEM_MESSAGES.REDUCTION_QUANTITY_GREATER_THAN_AVAILABLE)
         }
         const order = await this.orderRepository.findOne({ where: { id } })
         const newOrderItem = this.orderItemService.createOrderItem(order, quantity, item)

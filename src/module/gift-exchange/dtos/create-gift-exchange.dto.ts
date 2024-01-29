@@ -1,9 +1,10 @@
 import { IsNotEmpty, IsNumber } from "class-validator";
+import { GIFT_MESSAGES } from "src/common/messages";
 
-export class CreateOrderItemDTO {
+export class CreateGiftExchangeDTO {
     @IsNumber()
     @IsNotEmpty()
-    itemId: number
+    giftId: number
 
     @IsNumber()
     @IsNotEmpty()

@@ -1,15 +1,26 @@
-import { IsEmail, IsNumber, IsPhoneNumber, IsString } from "class-validator";
+import { Transform } from "class-transformer";
+import { IsDate, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl, MinDate } from "class-validator";
+import { GIFT_MESSAGES } from "src/common/messages";
 
 export class CreateGiftDTO {
-    @IsString()
+    @IsString({ message: GIFT_MESSAGES.INVALID_NAME })
+    @IsNotEmpty({ message: GIFT_MESSAGES.EMPTY_NAME })
     name: string
 
-    @IsString()
+    @IsString({ message: GIFT_MESSAGES.INVALID_IMAGE })
+    @IsOptional()
     image: string
 
     @IsNumber()
-    price: number
+    @IsNotEmpty({ message: GIFT_MESSAGES.EMPTY_POINT_REQUIRED })
+    pointRequired: number
+
+    @MinDate(new Date())
+    @Transform(({ value }) => new Date(value))
+    @IsDate({ message: GIFT_MESSAGES.INVALID_EXPIRATION_DATE })
+    expirationDate: Date
 
     @IsNumber()
+    @IsNotEmpty({ message: GIFT_MESSAGES.EMPTY_QUANTITY_AVAILABLE })
     quantityAvailable: number
 }

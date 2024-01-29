@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
 import { EStatus } from 'src/enum';
+import { STORE_MESSAGES } from 'src/common/messages';
 
 @Injectable()
 export class StoreService {
@@ -35,10 +36,10 @@ export class StoreService {
     async login(store: LoginStoreDTO) {
         const existedStore = await this.findByEmail(store.email)
         if (!existedStore) {
-            throw new NotFoundException('Not found Store Email')
+            throw new NotFoundException(STORE_MESSAGES.NOT_FOUND_STORE_EMAIL)
         }
         if (!await bcrypt.compare(store.password, existedStore.password)) {
-            throw new NotFoundException('Wrong password')
+            throw new NotFoundException(STORE_MESSAGES.WRONG_PASSWORD)
         }
         const hashed = await bcrypt.hash(existedStore.email, 10)
         this.mailService.sendRequestAdminConfirm(existedStore, hashed)
@@ -57,7 +58,7 @@ export class StoreService {
     async create(@Body() Body: RegisterStoreDTO) {
         const store = await this.findByName(Body.name)
         if (store) {
-            throw new BadRequestException('Store already existed')
+            throw new BadRequestException(STORE_MESSAGES.STORE_ALREADY_EXISTED)
         }
         const salt = await bcrypt?.genSalt(10)
         const hashedPassword = await bcrypt?.hash(Body.password, salt)
@@ -66,7 +67,6 @@ export class StoreService {
         await this.storesRepository.save(newStore)
         const token = await bcrypt?.hash(newStore.email, salt)
         this.mailService.sendStoreConfirmationEmail(newStore, token)
-
     }
 
     async verifyEmail(email: string, token: string) {
@@ -79,10 +79,16 @@ export class StoreService {
                 email_verified_at: currentDate
             }
             this.storesRepository.save(updateStore)
-            return this.storesRepository.save(updateStore)
+            const returnStore = {
+                name: updateStore.name,
+                phone: updateStore.phone,
+                email: updateStore.email
+            }
+            await this.storesRepository.save(updateStore)
+            return returnStore
         }
         else {
-            throw new NotFoundException('Please recheck your email')
+            throw new NotFoundException(STORE_MESSAGES.PLEASE_RECHECK_EMAIL)
         }
     }
 
@@ -95,9 +101,13 @@ export class StoreService {
                 status: EStatus.VALIDATED
             } as Store
             this.storesRepository.save(updateStore)
-
+            const returnStore = {
+                name: updateStore.name,
+                phone: updateStore.phone,
+                email: updateStore.email
+            }
             const accessToken = await this.generateToken(updateStore)
-            return { updateStore, accessToken }
+            return { returnStore, accessToken }
         }
     }
 

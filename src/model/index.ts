@@ -1,5 +1,5 @@
 export * from './admin.model'
-export * from './exchange-gift.model'
+export * from './gift-exchange.model'
 export * from './gift-order.model'
 export * from './gift.model'
 export * from './store.model'
