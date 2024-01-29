@@ -2,17 +2,10 @@ import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import { ERole } from "src/enum/role.enum";
-import { Store } from "src/model/store.model";
-import { AdminService } from "src/module/admin/admin.service";
-import { StoreService } from "src/module/store/store.service";
-import { UserService } from "src/module/user/user.service";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
     constructor(private reflector: Reflector, private readonly jwt: JwtService,
-        // private readonly userService: UserService,
-        // private readonly adminService: AdminService,
-        // private readonly storeService: StoreService
     ) { }
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const roles = this.reflector.getAllAndOverride<string[]>('roles', [context.getHandler(), context.getClass()]);
@@ -27,7 +20,7 @@ export class RolesGuard implements CanActivate {
         const payload = await this.jwt.verifyAsync(
             token,
             {
-                secret: 'key'
+                secret: process.env.ACCESS_KEY
             }
         );
         const userRoles = payload.role?.split(',');

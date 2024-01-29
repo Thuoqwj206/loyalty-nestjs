@@ -11,6 +11,7 @@ import { Roles } from "src/decorator/role.decorator";
 import { currentUser } from "src/decorator/current-user.decorator";
 import { User } from "src/model/user.model";
 import { Response, Request } from "express";
+import { USER_MESSAGES } from "src/common/messages";
 
 @Controller('user')
 export class UsersController {
@@ -27,7 +28,7 @@ export class UsersController {
     @UseGuards(RolesGuard)
     async register(@Res() res: Response, @Body() body: RegisterUserDTO) {
         await this.userService.create(body);
-        res.status(200).json('The OTP verification code is sent to your phone number. It would expire after 1 minute')
+        res.status(200).json(USER_MESSAGES.SENT_OTP)
     }
 
     @Post('/login')
@@ -50,11 +51,6 @@ export class UsersController {
         const verifyUser = await this.userService.confirmRegisterOTP(body, store)
         return verifyUser
     }
-
-    // @Get('/sms')
-    // async sendSMS() {
-    //     return this.userService.sendSMS()
-    // }
 
     @Post('/verify-otp/login')
     async confirmLogin(@Body() body: OTPConfirmDTO) {

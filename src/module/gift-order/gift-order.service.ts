@@ -7,6 +7,7 @@ import { GiftOrder, Store } from "src/model";
 import { GiftService } from "../gift/gift.service";
 import { GiftExchangeService } from "../gift-exchange/gift-exchange.service";
 import { CreateGiftExchangeDTO } from "../gift-exchange/dtos";
+import { GIFT_MESSAGES, USER_MESSAGES } from "src/common/messages";
 
 @Injectable()
 export class GiftOrderService {
@@ -47,7 +48,7 @@ export class GiftOrderService {
     async createNewGiftOrder(userId: number, store: Store) {
         const user = await this.userService.findOne(userId)
         if (!user) {
-            throw new NotFoundException('Not found User')
+            throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
         }
         const targetStore = await this.storeService.findOne(store.id)
         const newGiftOrder = this.giftOrderRepository.create({
@@ -60,7 +61,7 @@ export class GiftOrderService {
     async completeGiftOrder(id: number) {
         const giftOrder = await this.giftOrderRepository.findOne({ relations: ['user', 'store'], where: { id } })
         if (giftOrder.totalPoints != 0) {
-            throw new NotAcceptableException('GiftOrder can not be override')
+            throw new NotAcceptableException(GIFT_MESSAGES.NOT_ACCEPTED)
         }
         const giftExchanges = await this.giftExchangeService.findExchangesOfGiftOrder(giftOrder)
         giftExchanges.map(async (giftExchange) => {
@@ -79,10 +80,10 @@ export class GiftOrderService {
         const { giftId, quantity } = body
         const gift = await this.giftService.findOne(giftId)
         if (!gift) {
-            throw new NotFoundException('Not found that gift')
+            throw new NotFoundException(GIFT_MESSAGES.NOT_FOUND)
         }
         if (quantity > gift.quantityAvailable) {
-            throw new NotAcceptableException(`Gift ${gift.name} does not have enough`)
+            throw new NotAcceptableException(GIFT_MESSAGES.REDUCTION_QUANTITY_GREATER_THAN_AVAILABLE)
         }
         const giftOrder = await this.giftOrderRepository.findOne({ where: { id } })
         const newGiftExchange = this.giftExchangeService.createGiftExchange(giftOrder, quantity, gift)

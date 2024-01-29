@@ -4,7 +4,7 @@ import { Gift, Store } from "src/model";
 import { Repository } from "typeorm";
 import { StoreService } from "../store/store.service";
 import { CreateGiftDTO } from "./dtos";
-import { AdjustQuantityDTO } from "./dtos/ajust-quantity.dto";
+import { GIFT_MESSAGES } from "src/common/messages";
 
 @Injectable()
 export class GiftService {
@@ -43,7 +43,7 @@ export class GiftService {
         const { name } = body
         const gift = await this.giftRepository.findOne({ where: { name } })
         if (gift) {
-            throw new NotAcceptableException('Existed Gift Name')
+            throw new NotAcceptableException(GIFT_MESSAGES.EXISTED_GIFT_NAME)
         }
         const targetStore = await this.storeService.findOne(store?.id)
         const newGift = await this.giftRepository.create(body)
@@ -54,11 +54,13 @@ export class GiftService {
         return newGift
     }
 
-    async addQuantity(id: number, quantity: number) {
+    async addQuantity(id: number, body) {
+        const { quantity } = body
         const gift = await this.giftRepository.findOne({ where: { id } })
         if (!gift) {
-            throw new NotFoundException('Not found any gift')
+            throw new NotFoundException(GIFT_MESSAGES.NOT_FOUND)
         }
+        console.log(gift.quantityAvailable + quantity)
         return this.giftRepository.save({
             ...gift,
             quantityAvailable: gift.quantityAvailable + quantity
@@ -68,10 +70,10 @@ export class GiftService {
     async reduceQuantity(id: number, quantity: number) {
         const gift = await this.giftRepository.findOne({ where: { id } })
         if (!gift) {
-            throw new NotFoundException('Not found any gift')
+            throw new NotFoundException(GIFT_MESSAGES.NOT_FOUND)
         }
         if (gift.quantityAvailable < quantity) {
-            throw new NotAcceptableException(`Reduction quantity is greater than number of gift available(${gift.quantityAvailable})`)
+            throw new NotAcceptableException(GIFT_MESSAGES.REDUCTION_QUANTITY_GREATER_THAN_AVAILABLE(quantity, gift.quantityAvailable))
         }
         return await this.giftRepository.save({
             ...gift,

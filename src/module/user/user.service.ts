@@ -12,6 +12,7 @@ import { Repository } from 'typeorm';
 import { LoginUserDTO } from './dtos/login-user.dto';
 import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
 import { RegisterUserDTO } from './dtos/register-user.dto';
+import { STORE_MESSAGES, USER_MESSAGES } from 'src/common/messages';
 @Injectable()
 export class UserService {
     constructor(
@@ -33,7 +34,7 @@ export class UserService {
     async create(@Body() Body: RegisterUserDTO) {
         const user = await this.findByEmail(Body.email)
         if (user) {
-            throw new BadRequestException('User already existed')
+            throw new BadRequestException(USER_MESSAGES.USER_ALREADY_EXISTS)
         }
         const salt = await bcrypt?.genSalt(10)
         Body.password = await bcrypt?.hash(Body.password, salt)
@@ -49,7 +50,7 @@ export class UserService {
 
     async sendSMS(otp: string, number: string) {
         return this.twilioService.client.messages.create({
-            body: `Your OTP is ${otp}`,
+            body: USER_MESSAGES.RECEIVE_OTP as unknown as string,
             from: process.env.TWILIO_PHONE_NUMBER,
             to: number,
         });
@@ -57,7 +58,7 @@ export class UserService {
     async confirmRegisterOTP(body: OTPConfirmDTO, store: Store) {
         const user = await this.findByEmail(body.email)
         if (!user) {
-            throw new NotFoundException('Not found User')
+            throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
         }
         const storedOTP = await this.cacheManager.get(user?.id)
         if (storedOTP == body.otp) {
@@ -82,9 +83,9 @@ export class UserService {
             await this.cacheManager.set(storedOTP, currentTry + 1)
             if (await this.cacheManager.get(storedOTP) > 3) {
                 await this.usersRepository.remove(user)
-                throw new NotFoundException('Not Found User')
+                throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
             }
-            else { return `Wrong OTP, you have ${3 - currentTry} times left` }
+            else { return USER_MESSAGES.ATTEMPT_TIME(currentTry) }
         }
     }
     async confirmLoginOTP(body: OTPConfirmDTO) {
@@ -110,9 +111,9 @@ export class UserService {
             const currentTry = await this.cacheManager.get(storedOTP)
             await this.cacheManager.set(storedOTP, currentTry + 1)
             if (await this.cacheManager.get(storedOTP) > 3) {
-                throw new NotFoundException('Cook')
+                throw new NotFoundException(USER_MESSAGES.DEAD_OTP)
             }
-            else { return `Wrong OTP, you have ${3 - currentTry} times left` }
+            else { return USER_MESSAGES.ATTEMPT_TIME(currentTry) }
         }
     }
 
@@ -138,10 +139,10 @@ export class UserService {
     async login(user: LoginUserDTO) {
         const existedUser = await this.findByEmail(user.email)
         if (!existedUser) {
-            throw new NotFoundException('Not found Store Email')
+            throw new NotFoundException(STORE_MESSAGES.NOT_FOUND_STORE_EMAIL)
         }
         if (!await bcrypt.compare(user.password, existedUser.password)) {
-            throw new NotFoundException('Wrong password')
+            throw new NotFoundException(STORE_MESSAGES.WRONG_PASSWORD)
         }
         const otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
         await this.cacheManager.set(existedUser.id, otp, 60000)

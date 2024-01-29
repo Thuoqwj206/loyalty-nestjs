@@ -1,9 +1,13 @@
-import { IsEmail, IsPhoneNumber, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, IsString, IsStrongPassword } from "class-validator";
+import { USER_MESSAGES } from "src/common/messages";
 
 export class LoginAdminDTO {
+
     @IsEmail()
+    @IsNotEmpty({ message: USER_MESSAGES.EMPTY_EMAIL })
     email: string
 
-    @IsString()
+    @IsString({ message: USER_MESSAGES.EMPTY_PASSWORD })
+    @IsStrongPassword()
     password: string
-}
+} 
