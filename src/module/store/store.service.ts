@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Body, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
@@ -11,13 +11,18 @@ import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
 import { EStatus } from 'src/enum';
 import { STORE_MESSAGES } from 'src/common/messages';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class StoreService {
     constructor(
         @InjectRepository(Store)
         private storesRepository: Repository<Store>,
+        private readonly userService: UserService,
         private readonly mailService: MailService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
         private readonly jwtService: JwtService
     ) { }
 
@@ -27,6 +32,12 @@ export class StoreService {
             return stores
         }
     }
+
+    async findCurrentStoreUser(store: Store): Promise<User[]> {
+        const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        return await this.userService.findStoreUsers(targetStore)
+    }
+
     async getAllUser(store: Store): Promise<User[]> {
         if (!store?.users) {
             throw new NotFoundException()
@@ -47,8 +58,9 @@ export class StoreService {
 
     async logout(store: Store) {
         if (!store) {
-            throw new NotFoundException()
+            throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
+        await this.cacheManager.set()
         this.storesRepository.save({
             ...store,
             status: EStatus.INVALIDATED

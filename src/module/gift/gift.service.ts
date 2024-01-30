@@ -60,7 +60,6 @@ export class GiftService {
         if (!gift) {
             throw new NotFoundException(GIFT_MESSAGES.NOT_FOUND)
         }
-        console.log(gift.quantityAvailable + quantity)
         return this.giftRepository.save({
             ...gift,
             quantityAvailable: gift.quantityAvailable + quantity

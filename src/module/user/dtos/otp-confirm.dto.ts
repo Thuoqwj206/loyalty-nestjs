@@ -1,11 +1,12 @@
 import { IsEmail, IsNotEmpty, IsPhoneNumber, IsString } from "class-validator";
+import { USER_MESSAGES } from "src/common/messages";
 
 export class OTPConfirmDTO {
     @IsString()
-    @IsNotEmpty({ message: 'Please enter a valid value' })
+    @IsNotEmpty({ message: USER_MESSAGES.EMPTY_OTP })
     otp: string
 
     @IsEmail()
-    @IsNotEmpty({ message: 'Please enter a valid value' })
+    @IsNotEmpty({ message: USER_MESSAGES.EMPTY_EMAIL })
     email: string
 }

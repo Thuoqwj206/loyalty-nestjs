@@ -8,6 +8,7 @@ export const USER_MESSAGES = {
     EMPTY_OTP: 'OTP is required',
     INVALID_NAME: 'Please enter a valid name',
     EMPTY_NAME: 'Name is required',
+    LOGOUT: 'Logout successfully',
     INVALID_PHONE: 'Please enter a valid phone number',
     EMPTY_PHONE: 'Phone number is required',
     DEAD_OTP: 'You are not accepted, please login later',

@@ -16,14 +16,13 @@ import { USER_MESSAGES } from "src/common/messages";
 @Controller('user')
 export class UsersController {
     constructor(private readonly userService: UserService) { }
-    @Get()
-    @Roles(ERole.STORE)
+    @Get('/all')
+    @Roles(ERole.ADMIN)
     @UseGuards(RolesGuard)
     async getAll() {
         return this.userService.findAll()
     }
-
-    @Post('register')
+    @Post('/register')
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     async register(@Res() res: Response, @Body() body: RegisterUserDTO) {
@@ -33,23 +32,21 @@ export class UsersController {
 
     @Post('/login')
     async login(@Body() body: LoginUserDTO) {
-        const user = await this.userService.login(body);
-        return user;
+        return await this.userService.login(body);
     }
 
     @Put('/logout')
     @Roles(ERole.USER)
     @UseGuards(RolesGuard)
     async logout(@currentUser() user: User) {
-        await this.userService.logout(user);
+        return await this.userService.logout(user);
     }
 
     @Post('/verify-otp/register')
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     async confirmUser(@Body() body: OTPConfirmDTO, @currentStore() store: Store) {
-        const verifyUser = await this.userService.confirmRegisterOTP(body, store)
-        return verifyUser
+        return await this.userService.confirmRegisterOTP(body, store)
     }
 
     @Post('/verify-otp/login')
@@ -57,4 +54,6 @@ export class UsersController {
         const verifyUser = await this.userService.confirmLoginOTP(body)
         return verifyUser
     }
+
+
 }   

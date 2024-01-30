@@ -9,12 +9,13 @@ import { OrderModule } from './module/order/order.module';
 import { StoreModule } from './module/store/store.module';
 import { UserModule } from './module/user/user.module';
 import { OrderItemModule } from './module/order-item/order-item.module';
-import { RedisModule } from 'nestjs-redis';
 import { CacheModule } from '@nestjs/cache-manager';
 import { GiftModule } from './module/gift/gift.module';
-
+import * as redisStore from "cache-manager-redis-store";
+import type { RedisClientOptions } from "redis";
+import { IoRedisModule } from './services/redis/redis.module';
 @Module({
-  imports: [DatabaseModule, OrderItemModule, ItemModule, OrderModule, UserModule, AdminModule, StoreModule, GiftModule,
+  imports: [DatabaseModule, OrderItemModule, IoRedisModule, CacheModule.register({ isGlobal: true }), ItemModule, OrderModule, UserModule, AdminModule, StoreModule, GiftModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

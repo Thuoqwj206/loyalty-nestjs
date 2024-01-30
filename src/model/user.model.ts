@@ -3,6 +3,7 @@ import { Store } from "./store.model";
 import { GiftOrder } from "./gift-order.model";
 import { EStatus, ERank } from "src/enum";
 import { Order } from "./order.model";
+import { Exclude } from "class-transformer";
 @Entity('users')
 export class User extends BaseEntity {
     @PrimaryGeneratedColumn()
@@ -27,6 +28,7 @@ export class User extends BaseEntity {
     @Column({
         type: 'varchar'
     })
+    @Exclude()
     password: string
 
     @Column({

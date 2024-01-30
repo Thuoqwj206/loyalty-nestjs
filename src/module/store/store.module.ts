@@ -10,9 +10,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { jwtConfig } from 'src/config';
 import { UserModule } from '../user/user.module';
 import { AdminModule } from '../admin/admin.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { IoRedisModule } from 'src/services/redis/redis.module';
 
 @Module({
-    imports: [UserModule, JwtModule.register(jwtConfig), TypeOrmModule.forFeature([Store]), MailModule, AdminModule],
+    imports: [UserModule, IoRedisModule, CacheModule.register(), JwtModule.register(jwtConfig), TypeOrmModule.forFeature([Store]), MailModule, AdminModule],
     providers: [StoreService],
     controllers: [StoresController],
     exports: [StoreService]

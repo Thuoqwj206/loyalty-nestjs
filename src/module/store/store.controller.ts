@@ -1,14 +1,14 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
-import { StoreService } from "./store.service";
-import { RegisterStoreDTO } from "./dtos/register-store.dto";
-import { Store } from "src/model/store.model";
-import { LoginStoreDTO } from "./dtos/login-store.dto";
-import { currentStore } from "src/decorator/current-store.decorator";
+import { Body, Controller, Get, Post, Put, Query, Res, UseGuards } from "@nestjs/common";
+import { Response } from "express";
 import { RolesGuard } from "src/common/guard/role.guard";
+import { STORE_MESSAGES } from "src/common/messages";
+import { currentStore } from "src/decorator/current-store.decorator";
 import { Roles } from "src/decorator/role.decorator";
 import { ERole } from "src/enum/role.enum";
-import { Response } from "express";
-import { STORE_MESSAGES } from "src/common/messages";
+import { Store } from "src/model/store.model";
+import { LoginStoreDTO } from "./dtos/login-store.dto";
+import { RegisterStoreDTO } from "./dtos/register-store.dto";
+import { StoreService } from "./store.service";
 
 @Controller('store')
 export class StoresController {
@@ -17,9 +17,12 @@ export class StoresController {
     async getAll() {
         return this.storeService.findAll()
     }
-    @Get()
-    async getAllUser(@currentStore() store: Store) {
-        return this.getAllUser(store)
+
+    @Get('users')
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    async getAllStoreUser(@currentStore() store: Store) {
+        return this.storeService.findCurrentStoreUser(store)
     }
 
     @Post()
