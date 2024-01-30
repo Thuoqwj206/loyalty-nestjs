@@ -1,5 +1,5 @@
 import { IsEmail, IsNotEmpty, IsPhoneNumber, IsString } from "class-validator";
-import { STORE_MESSAGES } from "src/common/messages";
+import { STORE_MESSAGES } from "src/constant/messages";
 
 export class LoginStoreDTO {
     @IsEmail()

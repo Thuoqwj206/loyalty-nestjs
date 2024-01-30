@@ -1,18 +1,15 @@
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { BadRequestException, Body, Injectable, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { TwilioService } from 'nestjs-twilio';
-import { RedisService } from 'src/services/redis/redis.service';
-import { STORE_MESSAGES, USER_MESSAGES } from 'src/common/messages';
+import { STORE_MESSAGES, USER_MESSAGES } from 'src/constant/messages';
 import { ERank, ERole, EStatus } from 'src/enum';
 import { Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
+import { RedisService } from 'src/services/redis/redis.service';
 import { Repository } from 'typeorm';
-import { LoginUserDTO } from './dtos/login-user.dto';
-import { OTPConfirmDTO } from './dtos/otp-confirm.dto';
-import { RegisterUserDTO } from './dtos/register-user.dto';
+import { ReturnUserDTO, RegisterUserDTO, OTPConfirmDTO, LoginUserDTO, CreateUserDTO, UpdateUserDTO } from './dtos';
 @Injectable()
 export class UserService {
     constructor(
@@ -26,10 +23,21 @@ export class UserService {
     async findAll(): Promise<User[]> {
         return await this.usersRepository.find();
     }
-    async findStoreUsers(store: Store): Promise<User[]> {
-        return await this.usersRepository.find({ where: { store } })
+    async findStoreUsers(store: Store): Promise<ReturnUserDTO[]> {
+        const returnUsers: ReturnUserDTO[] = []
+        const users = await this.usersRepository.find({ where: { store } })
+        for (const user of users) {
+            const returnUser = {
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+            }
+            returnUsers.push(returnUser)
+        }
+        return returnUsers
     }
-    async create(@Body() Body: RegisterUserDTO) {
+
+    async create(Body: RegisterUserDTO) {
         const user = await this.findByPhone(Body.phone)
         if (user) {
             throw new BadRequestException(USER_MESSAGES.USER_ALREADY_EXISTS)
@@ -142,21 +150,11 @@ export class UserService {
     }
 
     async findByEmail(email: string): Promise<User> {
-        const user = await this.usersRepository.findOne({ where: { email } })
-        if (user) {
-            return user
-        }
-        else {
-        }
+        return await this.usersRepository.findOne({ where: { email } })
     }
 
     async findByPhone(phone: string): Promise<User> {
-        const user = await this.usersRepository.findOne({ where: { phone } })
-        if (user) {
-            return user
-        }
-        else {
-        }
+        return await this.usersRepository.findOne({ where: { phone } })
     }
 
 
@@ -167,6 +165,17 @@ export class UserService {
             throw new NotFoundException()
         }
         return user
+    }
+
+    async addPoint(id: number, point: number): Promise<User> {
+        const user = await this.usersRepository.findOne({ where: { id: id } })
+        if (!user) {
+            throw new NotFoundException()
+        }
+        return await this.usersRepository.save({
+            ...user,
+            point: user.point + point
+        })
     }
 
     async accumulatePoint(user: User, price: number): Promise<User> {
@@ -222,10 +231,46 @@ export class UserService {
             user.Rank = ERank.GOLD
         }
     }
-
     async handleGoldUpperRank(point: number, bonus: number, price: number) {
         bonus += Math.floor((price / 100)) * 15
         point += bonus
+    }
+
+    async createUserAdmin(Body: CreateUserDTO) {
+        const user = await this.findByPhone(Body.phone)
+        if (user) {
+            throw new BadRequestException(USER_MESSAGES.USER_ALREADY_EXISTS)
+        }
+        const salt = await bcrypt?.genSalt(10)
+        Body.password = await bcrypt?.hash(Body.password, salt)
+        const newUser = this.usersRepository.create(Body)
+        return await this.usersRepository.save({
+            ...newUser,
+            verified_at: new Date(),
+        })
+    }
+    async updateUser(body: UpdateUserDTO, id: number) {
+        const user = await this.usersRepository.findOne({ where: { id } })
+        if (!user) {
+            throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
+        }
+        if (body.password) {
+            const salt = await bcrypt.genSalt(10)
+            body.password = await bcrypt.hash(body.password, salt)
+        }
+        return this.usersRepository.save({
+            ...user,
+            ...body
+        })
+    }
+
+    async deleteUser(id: number) {
+        const user = await this.usersRepository.findOne({ where: { id } })
+        if (!user) {
+            throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
+        }
+        await this.usersRepository.remove(user)
+        return USER_MESSAGES.DELETED
     }
 
     async logout(user: User) {

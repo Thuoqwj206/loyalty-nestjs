@@ -11,6 +11,7 @@ export const STORE_MESSAGES = {
     NOT_FOUND_STORE_EMAIL: 'Store email not found',
     WRONG_PASSWORD: 'Wrong password',
     STORE_ALREADY_EXISTED: 'Store already exists',
+    DELETED: 'Deleted Successfully',
     PLEASE_RECHECK_EMAIL: 'Please recheck your email',
     STORE_NOT_FOUND: 'Store not found',
     SENT_EMAIL: 'The verification link is sent to your email. Please confirm it',

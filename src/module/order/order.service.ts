@@ -1,14 +1,14 @@
-import { Inject, Injectable, NotAcceptableException, NotFoundException, forwardRef } from "@nestjs/common";
+import { Injectable, NotAcceptableException, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Order, OrderItem, Store } from "src/model";
+import { ORDER_MESSAGES, USER_MESSAGES } from "src/constant/messages";
+import { ITEM_MESSAGES } from "src/constant/messages/item.message";
+import { Order, Store } from "src/model";
 import { Repository } from "typeorm";
+import { ItemService } from "../item/item.service";
+import { CreateOrderItemDTO } from "../order-item/dtos";
 import { OrderItemService } from "../order-item/order-item.service";
 import { StoreService } from "../store/store.service";
 import { UserService } from "../user/user.service";
-import { ItemService } from "../item/item.service";
-import { CreateOrderItemDTO } from "../order-item/dtos";
-import { ORDER_MESSAGES, USER_MESSAGES } from "src/common/messages";
-import { ITEM_MESSAGES } from "src/common/messages/item.message";
 
 @Injectable()
 export class OrderService {
@@ -37,9 +37,9 @@ export class OrderService {
         return null
     }
 
-    async findStoreOrder(id: number): Promise<Order[]> {
-        const store = await this.storeService.findOne(id)
-        const orders = await this.orderRepository.find({ where: { store } })
+    async findStoreOrder(store: Store): Promise<Order[]> {
+        const targetStore = await this.storeService.findOne(store.id)
+        const orders = await this.orderRepository.find({ where: { store: targetStore } })
         if (orders) {
             return orders
         }

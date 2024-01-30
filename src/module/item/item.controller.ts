@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { RolesGuard } from "src/common/guard/role.guard";
 import { currentStore } from "src/decorator/current-store.decorator";
 import { Roles } from "src/decorator/role.decorator";
 import { ERole } from "src/enum";
 import { CreateItemDTO } from "./dtos";
 import { ItemService } from "./item.service";
+import { Store } from "src/model";
+import { UpdateItemDTO } from "./dtos/update-item.dto";
 
 @Controller('/item')
 export class ItemController {
@@ -15,9 +17,11 @@ export class ItemController {
         return await this.itemService.findAll()
     }
 
-    @Get('/:id')
-    async findStoreItem(@Query('id') id: number) {
-        return await this.itemService.findStoreItem(id)
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    @Get()
+    async findStoreItem(@currentStore() store: Store) {
+        return await this.itemService.findStoreItem(store)
     }
 
     @Roles(ERole.STORE)
@@ -28,13 +32,31 @@ export class ItemController {
 
     }
 
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    @Put('update/:id')
+    async update(@Body() body: UpdateItemDTO, @Param('id') id: number) {
+        return await this.itemService.update(body, id)
+    }
+
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
     @Put('/:id/add-quantity')
     async addQuantity(@Query('id') id: number, quantity: number) {
         return await this.addQuantity(id, quantity)
     }
 
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
     @Put('/:id/reduce-quantity')
     async reduceQuantity(@Query('id') id: number, quantity: number) {
         return await this.reduceQuantity(id, quantity)
+    }
+
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    @Delete('delete/:id')
+    async delete(@Param('id') id: number) {
+        return await this.itemService.delete(id)
     }
 }

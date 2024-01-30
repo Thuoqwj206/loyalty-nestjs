@@ -15,6 +15,11 @@ export class GiftController {
         return await this.giftService.findAll()
     }
 
+    @Get('/available')
+    async findAvailable() {
+        return await this.giftService.findAvailableGifts()
+    }
+
     @Get('/:id')
     async findStoreGift(@Param('id') id: number) {
         return await this.giftService.findStoreGift(id)

@@ -7,7 +7,7 @@ import { GiftOrder, Store } from "src/model";
 import { GiftService } from "../gift/gift.service";
 import { GiftExchangeService } from "../gift-exchange/gift-exchange.service";
 import { CreateGiftExchangeDTO } from "../gift-exchange/dtos";
-import { GIFT_MESSAGES, USER_MESSAGES } from "src/common/messages";
+import { GIFT_MESSAGES, USER_MESSAGES } from "src/constant/messages";
 
 @Injectable()
 export class GiftOrderService {
