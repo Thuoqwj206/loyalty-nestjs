@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsPhoneNumber, IsString, IsStrongPassword } from "class-validator";
-import { STORE_MESSAGES } from "src/common/messages";
+import { STORE_MESSAGES } from "src/constant/messages";
 
 export class UpdateStoreDTO {
     @IsString()

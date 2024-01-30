@@ -13,7 +13,7 @@ export class RolesGuard implements CanActivate {
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const roles = this.reflector.getAllAndOverride<string[]>('roles', [context.getHandler(), context.getClass()]);
         if (!roles) {
-            return false;
+            throw new UnauthorizedException();
         }
         const request = context.switchToHttp().getRequest();
         const token = request.headers.authorization?.split(' ')[1]
@@ -36,6 +36,9 @@ export class RolesGuard implements CanActivate {
     }
 
     validateRoles(roles: string[], userRoles: string[]) {
-        return roles.some(role => userRoles?.includes(role));
+        if (!roles.some(role => userRoles?.includes(role))) {
+            throw new UnauthorizedException();
+        }
+        return true
     }
 }

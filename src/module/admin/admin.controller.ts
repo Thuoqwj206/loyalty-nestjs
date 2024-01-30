@@ -14,13 +14,11 @@ export class AdminsController {
 
     @Post()
     async register(@Body() body: Admin) {
-        const newAdmin = await this.adminService.create(body);
-        return newAdmin;
+        return await this.adminService.create(body);
     }
 
     @Post('/login')
     async login(@Body() body: LoginAdminDTO) {
-        const newAdmin = await this.adminService.login(body);
-        return newAdmin;
+        return await this.adminService.login(body);
     }
 }

@@ -10,10 +10,12 @@ import { Repository } from 'typeorm';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
 import { EStatus } from 'src/enum';
-import { STORE_MESSAGES } from 'src/common/messages';
+import { STORE_MESSAGES } from 'src/constant/messages';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { UserService } from '../user/user.service';
+import { ReturnUserDTO } from '../user/dtos/return-user.dto';
+import { UpdateStoreDTO } from './dtos/update-store.dto';
 
 @Injectable()
 export class StoreService {
@@ -33,7 +35,7 @@ export class StoreService {
         }
     }
 
-    async findCurrentStoreUser(store: Store): Promise<User[]> {
+    async findCurrentStoreUser(store: Store): Promise<ReturnUserDTO[]> {
         const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
         return await this.userService.findStoreUsers(targetStore)
     }
@@ -56,6 +58,45 @@ export class StoreService {
         this.mailService.sendRequestAdminConfirm(existedStore, hashed)
     }
 
+
+    async create(Body: RegisterStoreDTO) {
+        const store = await this.findByEmail(Body.email)
+        if (store) {
+            throw new BadRequestException(STORE_MESSAGES.STORE_ALREADY_EXISTED)
+        }
+        const salt = await bcrypt?.genSalt(10)
+        const hashedPassword = await bcrypt?.hash(Body.password, salt)
+        Body.password = hashedPassword
+        const newStore = await this.storesRepository.create(Body)
+        return await this.storesRepository.save(newStore)
+    }
+
+    async update(Body: UpdateStoreDTO, id: number) {
+        const store = await this.storesRepository.findOne({ where: { id } })
+        if (!store) {
+            throw new BadRequestException(STORE_MESSAGES.STORE_NOT_FOUND)
+        }
+        if (Body.password) {
+            const salt = await bcrypt?.genSalt(10)
+            const hashedPassword = await bcrypt?.hash(Body.password, salt)
+            Body.password = hashedPassword
+        }
+        return await this.storesRepository.save({
+            ...store,
+            ...Body
+        })
+    }
+
+    async delete(id: number) {
+        const store = await this.storesRepository.findOne({ where: { id } })
+        if (!store) {
+            throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
+        }
+        await this.storesRepository.remove(store)
+        return STORE_MESSAGES.DELETED
+    }
+
+
     async logout(store: Store) {
         if (!store) {
             throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
@@ -67,7 +108,7 @@ export class StoreService {
         })
     }
 
-    async create(@Body() Body: RegisterStoreDTO) {
+    async register(@Body() Body: RegisterStoreDTO) {
         const store = await this.findByName(Body.name)
         if (store) {
             throw new BadRequestException(STORE_MESSAGES.STORE_ALREADY_EXISTED)

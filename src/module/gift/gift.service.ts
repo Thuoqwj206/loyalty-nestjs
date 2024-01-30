@@ -1,10 +1,10 @@
 import { Injectable, NotAcceptableException, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Gift, Store } from "src/model";
-import { Repository } from "typeorm";
+import { LessThan, MoreThan, Repository } from "typeorm";
 import { StoreService } from "../store/store.service";
 import { CreateGiftDTO } from "./dtos";
-import { GIFT_MESSAGES } from "src/common/messages";
+import { GIFT_MESSAGES } from "src/constant/messages";
 
 @Injectable()
 export class GiftService {
@@ -38,7 +38,12 @@ export class GiftService {
         }
         return null
     }
-
+    async findAvailableGifts(): Promise<Gift[]> {
+        return await this.giftRepository.findBy({
+            quantityAvailable: MoreThan(0),
+            expirationDate: MoreThan(new Date())
+        })
+    }
     async addNewGift(body: CreateGiftDTO, store) {
         const { name } = body
         const gift = await this.giftRepository.findOne({ where: { name } })
@@ -53,6 +58,7 @@ export class GiftService {
         })
         return newGift
     }
+
 
     async addQuantity(id: number, body) {
         const { quantity } = body

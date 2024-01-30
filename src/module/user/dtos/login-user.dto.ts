@@ -1,5 +1,5 @@
 import { IsEmail, IsNotEmpty, IsPhoneNumber, IsString } from "class-validator";
-import { USER_MESSAGES } from "src/common/messages";
+import { USER_MESSAGES } from "src/constant/messages";
 
 export class LoginUserDTO {
     @IsEmail()

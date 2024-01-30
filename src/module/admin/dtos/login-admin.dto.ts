@@ -1,5 +1,5 @@
 import { IsEmail, IsNotEmpty, IsString, IsStrongPassword } from "class-validator";
-import { USER_MESSAGES } from "src/common/messages";
+import { USER_MESSAGES } from "src/constant/messages";
 
 export class LoginAdminDTO {
 
@@ -8,6 +8,5 @@ export class LoginAdminDTO {
     email: string
 
     @IsString({ message: USER_MESSAGES.EMPTY_PASSWORD })
-    @IsStrongPassword()
     password: string
 } 
