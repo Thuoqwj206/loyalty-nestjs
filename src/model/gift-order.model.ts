@@ -9,7 +9,8 @@ export class GiftOrder extends BaseEntity {
     id: number
 
     @Column({
-        type: 'int'
+        type: 'int',
+        default: 0
     })
     totalPoints: number
 

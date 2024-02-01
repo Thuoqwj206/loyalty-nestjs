@@ -8,6 +8,6 @@ export class GiftExchangeController {
 
     @Get()
     async findAll() {
-        return await this.orderItemService.findAll()
+        return this.orderItemService.findAll()
     }
 }

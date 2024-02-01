@@ -1,21 +1,29 @@
-import { BadRequestException, Body, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { STORE_MESSAGES, USER_MESSAGES } from 'src/constant/messages';
 import { ERole } from 'src/enum/role.enum';
 import { MailService } from 'src/mail/mail.service';
 import { Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
 import { Repository } from 'typeorm';
+import { UserService } from '../user/user.service';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
-import { EStatus } from 'src/enum';
-import { STORE_MESSAGES } from 'src/constant/messages';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
-import { UserService } from '../user/user.service';
-import { ReturnUserDTO } from '../user/dtos/return-user.dto';
 import { UpdateStoreDTO } from './dtos/update-store.dto';
+import { RedisService } from 'src/services/redis/redis.service';
+import { OTPConfirmDTO, UpdateUserDTO } from '../user/dtos';
+import { EStatus } from 'src/enum';
+import { AddUserPointDTO } from '../user/dtos/add-point.dto';
+import { currentStore } from 'src/decorator/current-store.decorator';
+import { ItemService } from '../item/item.service';
+import { Gift, Item } from 'src/model';
+import { UpdateItemDTO } from '../item/dtos/update-item.dto';
+import { CreateItemDTO } from '../item/dtos';
+import { GiftService } from '../gift/gift.service';
+import { CreateGiftDTO } from '../gift/dtos';
+import { UpdateGiftDTO } from '../gift/dtos/update-gift.dto';
 
 @Injectable()
 export class StoreService {
@@ -23,30 +31,108 @@ export class StoreService {
         @InjectRepository(Store)
         private storesRepository: Repository<Store>,
         private readonly userService: UserService,
+        private readonly redisService: RedisService,
         private readonly mailService: MailService,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
-        private readonly jwtService: JwtService
+        private readonly jwtService: JwtService,
+        private readonly itemService: ItemService,
+        private readonly giftService: GiftService,
     ) { }
 
     async findAll(): Promise<Store[]> {
-        const stores = await this.storesRepository.find();
-        if (stores) {
-            return stores
-        }
+        return this.storesRepository.find({ select: ['name', 'email', 'phone'] });
     }
 
-    async findCurrentStoreUser(store: Store): Promise<ReturnUserDTO[]> {
+    async findCurrentStoreUser(store: Store): Promise<User[]> {
         const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
-        return await this.userService.findStoreUsers(targetStore)
+        return this.userService.findStoreUsers(targetStore)
+
     }
 
-    async getAllUser(store: Store): Promise<User[]> {
-        if (!store?.users) {
-            throw new NotFoundException()
+    async updateCurrentStoreUser(store: Store, body: UpdateUserDTO, id: number): Promise<User> {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (await this.userService.isUserInStore(id, currentStore) == false) {
+            throw new NotAcceptableException('This user isnt belong to your store')
         }
-        return store?.users
+        return this.userService.updateUser(body, id)
     }
-    async login(store: LoginStoreDTO) {
+
+    async deleteCurrentStoreUser(store: Store, id: number) {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (await this.userService.isUserInStore(id, currentStore) == false) {
+            throw new NotAcceptableException('This user isnt belong to your store')
+        }
+        return this.userService.deleteUser(id)
+    }
+
+    async addCurrentUserPoint(store: Store, body: AddUserPointDTO, id: number,) {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (await this.userService.isUserInStore(id, currentStore) == false) {
+            throw new NotAcceptableException('This user isnt belong to your store')
+        }
+        return this.userService.addPoint(id, body.point)
+    }
+
+    async addStoreItem(store: Store, body: CreateItemDTO) {
+        return this.itemService.addNewItem(body, store)
+    }
+
+    async findCurrentStoreItem(store: Store): Promise<Item[]> {
+        const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        return this.itemService.findStoreItem(targetStore)
+    }
+
+    async updateCurrentStoreItem(store: Store, body: UpdateItemDTO, id: number): Promise<Item> {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (await this.itemService.isItemInStore(id, currentStore) == false) {
+            throw new NotAcceptableException('This user isnt belong to your store')
+        }
+        return this.itemService.update(body, id)
+    }
+
+    async deleteCurrentStoreItem(store: Store, id: number) {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (await this.itemService.isItemInStore(id, currentStore) == false) {
+            throw new NotAcceptableException('This user isnt belong to your store')
+        }
+        return this.itemService.delete(id)
+    }
+
+    async addStoreGift(store: Store, body: CreateGiftDTO): Promise<Gift> {
+        return this.giftService.addNewGift(body, store)
+    }
+
+    async findCurrentStoreGift(store: Store): Promise<Gift[]> {
+        const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        return this.giftService.findStoreGift(targetStore)
+    }
+
+    async updateStoreGift(store: Store, body: UpdateGiftDTO, id: number): Promise<Gift> {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (await this.giftService.isGiftInStore(id, currentStore) == false) {
+            throw new NotAcceptableException('This user isnt belong to your store')
+        }
+        return this.giftService.update(body, id)
+    }
+
+    async deleteStoreGift(store: Store, id: number) {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (await this.giftService.isGiftInStore(id, currentStore) == false) {
+            throw new NotAcceptableException('This user isnt belong to your store')
+        }
+        return this.giftService.delete(id)
+    }
+
+
+    async userConfirmOTP(body: OTPConfirmDTO, store: Store): Promise<User | { message: string }> {
+        const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        const result = await this.userService.confirmRegisterOTP(body)
+        if (result.isSuccess) {
+            return this.userService.updateUserStore(result.returnUser, targetStore)
+        }
+        return { message: USER_MESSAGES.NOT_FOUND }
+    }
+
+    async login(store: LoginStoreDTO): Promise<{ store: Store, token: string }> {
         const existedStore = await this.findByEmail(store.email)
         if (!existedStore) {
             throw new NotFoundException(STORE_MESSAGES.NOT_FOUND_STORE_EMAIL)
@@ -54,153 +140,134 @@ export class StoreService {
         if (!await bcrypt.compare(store.password, existedStore.password)) {
             throw new NotFoundException(STORE_MESSAGES.WRONG_PASSWORD)
         }
-        const hashed = await bcrypt.hash(existedStore.email, 10)
-        this.mailService.sendRequestAdminConfirm(existedStore, hashed)
+        if (!existedStore.email_verified_at) {
+            throw new NotAcceptableException('You are not verified')
+        }
+        if (existedStore.status == EStatus.INVALIDATED) {
+            throw new NotAcceptableException('Please waiting for admin acceptance')
+        }
+        const token = await this.generateToken(existedStore)
+        const returnStore = await this.storesRepository.findOne({ where: { id: existedStore.id }, select: ['name', 'email', 'phone'] })
+        return { store: returnStore, token: token }
     }
 
-
-    async create(Body: RegisterStoreDTO) {
-        const store = await this.findByEmail(Body.email)
+    async create(body: RegisterStoreDTO): Promise<Store> {
+        const store = await this.findByEmail(body.email)
         if (store) {
             throw new BadRequestException(STORE_MESSAGES.STORE_ALREADY_EXISTED)
         }
         const salt = await bcrypt?.genSalt(10)
-        const hashedPassword = await bcrypt?.hash(Body.password, salt)
-        Body.password = hashedPassword
-        const newStore = await this.storesRepository.create(Body)
-        return await this.storesRepository.save(newStore)
+        body.password = await bcrypt?.hash(body.password, salt)
+        const newStore = await this.storesRepository.create(body) as Store
+        await this.storesRepository.save({
+            ...newStore,
+            email_verified_at: new Date()
+        })
+        return this.storesRepository.findOne({ where: { email: newStore.email }, select: ['name', 'email', 'phone'] })
     }
 
-    async update(Body: UpdateStoreDTO, id: number) {
+    async update(body: UpdateStoreDTO, id: number): Promise<Store> {
         const store = await this.storesRepository.findOne({ where: { id } })
         if (!store) {
             throw new BadRequestException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
-        if (Body.password) {
+        if (body.password) {
             const salt = await bcrypt?.genSalt(10)
-            const hashedPassword = await bcrypt?.hash(Body.password, salt)
-            Body.password = hashedPassword
+            const hashedPassword = await bcrypt?.hash(body.password, salt)
+            body.password = hashedPassword
         }
-        return await this.storesRepository.save({
+        const newStore = await this.storesRepository.save({
             ...store,
-            ...Body
+            ...body
         })
+        return this.storesRepository.findOne({ where: { id: newStore.id }, select: ['name', 'email', 'phone'] })
     }
 
-    async delete(id: number) {
+    async delete(id: number): Promise<{ message: string }> {
         const store = await this.storesRepository.findOne({ where: { id } })
         if (!store) {
             throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
+        const users = await this.userService.findStoreUsers(store)
+        users.map(async (user) => {
+            await this.userService.deleteUser(user.id)
+        })
         await this.storesRepository.remove(store)
-        return STORE_MESSAGES.DELETED
+        return { message: STORE_MESSAGES.DELETED }
     }
 
 
-    async logout(store: Store) {
+    async logout(store: Store): Promise<{ message: string }> {
         if (!store) {
             throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
-        await this.cacheManager.set()
-        this.storesRepository.save({
-            ...store,
-            status: EStatus.INVALIDATED
-        })
+        const token = await this.redisService.get(String(store.id))
+        await this.redisService.setExpire(token, 1, 420000)
+        return { message: STORE_MESSAGES.LOGOUT }
     }
 
-    async register(@Body() Body: RegisterStoreDTO) {
-        const store = await this.findByName(Body.name)
+    async register(body: RegisterStoreDTO): Promise<{ message: string }> {
+        const store = await this.findByEmail(body.email)
         if (store) {
             throw new BadRequestException(STORE_MESSAGES.STORE_ALREADY_EXISTED)
         }
         const salt = await bcrypt?.genSalt(10)
-        const hashedPassword = await bcrypt?.hash(Body.password, salt)
-        Body.password = hashedPassword
-        const newStore = await this.storesRepository.create(Body)
-        await this.storesRepository.save(newStore)
+        const hashedPassword = await bcrypt?.hash(body.password, salt)
+        body.password = hashedPassword
+        const newStore = await this.storesRepository.create(body).save()
         const token = await bcrypt?.hash(newStore.email, salt)
-        this.mailService.sendStoreConfirmationEmail(newStore, token)
+        await this.mailService.sendRequestAdminConfirm(newStore, token)
+        return { message: STORE_MESSAGES.SENT_EMAIL }
     }
 
-    async verifyEmail(email: string, token: string) {
+    async verifyEmail(email: string, token: string): Promise<{ returnStore: Store, message: string }> {
         const isConfirm = await bcrypt.compare(email, token)
         if (isConfirm) {
             const store = await this.findByEmail(email)
-            const currentDate = new Date(Date.now())
-            const updateStore = {
+            await this.storesRepository.save({
                 ...store,
-                email_verified_at: currentDate
-            }
-            this.storesRepository.save(updateStore)
-            const returnStore = {
-                name: updateStore.name,
-                phone: updateStore.phone,
-                email: updateStore.email
-            }
-            await this.storesRepository.save(updateStore)
-            return returnStore
+                email_verified_at: new Date()
+            })
+            const returnStore = await this.storesRepository.findOne({ where: { id: store.id }, select: ['name', 'email', 'phone'] })
+            return { returnStore, message: 'You are verified' }
         }
         else {
             throw new NotFoundException(STORE_MESSAGES.PLEASE_RECHECK_EMAIL)
         }
     }
 
-    async confirmStore(email: string, token: string) {
+    async confirmStore(email: string, token: string): Promise<Store> {
         const isConfirm = await bcrypt.compare(email, token)
         if (isConfirm) {
             const store = await this.findByEmail(email)
-            const updateStore = {
+            this.storesRepository.save({
                 ...store,
                 status: EStatus.VALIDATED
-            } as Store
-            this.storesRepository.save(updateStore)
-            const returnStore = {
-                name: updateStore.name,
-                phone: updateStore.phone,
-                email: updateStore.email
-            }
-            const accessToken = await this.generateToken(updateStore)
-            return { returnStore, accessToken }
-        }
-    }
-
-    async findByName(name: string): Promise<Store> {
-        const store = await this.storesRepository.findOne({ where: { name } })
-        if (store) {
+            })
+            await this.mailService.sendStoreConfirmationEmail(store, token)
             return store
         }
-        else {
-        }
     }
-
-    async findByEmail(email: string): Promise<Store> {
+    async findByEmail(email: string): Promise<Store | null> {
         const store = await this.storesRepository.findOne({ where: { email } })
         if (store) {
             return store
         }
-        else {
-            throw new NotFoundException()
-        }
+        return null
     }
 
     async findOne(id: number): Promise<Store> {
         const store = await this.storesRepository.findOne({ where: { id: id } })
         if (!store) {
-
+            throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
         return store
     }
-    async remove(id: number): Promise<void> {
-        await this.storesRepository.delete(id);
-    }
-
-    async addUser(user: User, store: Store) {
-        await store.users?.push(user)
-    }
-
-    async generateToken(store: Store) {
+    async generateToken(store: Store): Promise<string> {
         const payload = { id: store?.id, email: store?.email, role: ERole.STORE }
-        return await this.jwtService.signAsync(payload)
+        return this.jwtService.signAsync(payload)
     }
+
+
 }
 

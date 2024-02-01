@@ -1,7 +1,7 @@
 import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
 import { Store } from "./store.model";
 import { GiftOrder } from "./gift-order.model";
-import { EStatus, ERank } from "src/enum";
+import { ERank } from "src/enum";
 import { Order } from "./order.model";
 import { Exclude } from "@nestjs/class-transformer";
 @Entity('users')
@@ -42,13 +42,6 @@ export class User extends BaseEntity {
         default: null
     })
     verified_at: Date
-
-    @Column({
-        type: "enum",
-        enum: EStatus,
-        default: EStatus.INVALIDATED
-    })
-    status: EStatus
 
     @Column({
         type: "enum",

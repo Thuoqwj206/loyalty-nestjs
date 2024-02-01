@@ -8,34 +8,42 @@ import { GiftOrderService } from "./gift-order.service";
 import { CreateGiftOrderDTO } from "./dtos";
 import { CreateGiftExchangeDTO } from "../gift-exchange/dtos";
 
-@Controller('/gift-order')
+@Controller('gift-order')
 export class GiftOrderController {
     constructor(private readonly giftOrderService: GiftOrderService) { }
 
     @Get()
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
     async findAll() {
-        return await this.giftOrderService.findAll()
+        return this.giftOrderService.findAll()
     }
 
     @Get('/:id')
-    async findStoreGiftOrder(@Param('id') id: number) {
-        return await this.giftOrderService.findStoreGiftOrder(id)
-    }
-
-    @Post('/:userId/new')
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
-    async createGiftOrder(@Param('userId') id: number, @currentStore() store: Store) {
-        return await this.giftOrderService.createNewGiftOrder(id, store)
+    async findStoreGiftOrder(@Param('id') id: number) {
+        return this.giftOrderService.findStoreGiftOrder(id)
+    }
+
+    @Post()
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    async createGiftOrder(@Body() body: CreateGiftOrderDTO, @currentStore() store: Store) {
+        return this.giftOrderService.createNewGiftOrder(body, store)
     }
 
     @Post('/:id')
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
     async addGiftOrderItem(@Body() body: CreateGiftExchangeDTO, @Param('id') id: number) {
-        return await this.giftOrderService.addGiftExchange(id, body)
+        return this.giftOrderService.addGiftExchange(id, body)
     }
 
     @Post('/:id/complete')
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
     async completeGiftOrder(@Param('id') id: number) {
-        return await this.giftOrderService.completeGiftOrder(id)
+        return this.giftOrderService.completeGiftOrder(id)
     }
 }

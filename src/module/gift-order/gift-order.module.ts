@@ -11,9 +11,11 @@ import { GiftOrder } from 'src/model';
 import { GiftExchangeModule } from '../gift-exchange/gift-exchange.module';
 import { GiftOrderService } from './gift-order.service';
 import { GiftOrderController } from './gift-order.controller';
+import { GiftModule } from '../gift/gift.module';
+import { IoRedisModule } from 'src/services/redis/redis.module';
 
 @Module({
-    imports: [JwtModule.register(jwtConfig), GiftExchangeModule, ItemModule, UserModule, TypeOrmModule.forFeature([GiftOrder]), AdminModule, StoreModule],
+    imports: [JwtModule.register(jwtConfig), IoRedisModule, GiftModule, GiftExchangeModule, ItemModule, UserModule, TypeOrmModule.forFeature([GiftOrder]), AdminModule, StoreModule],
     providers: [GiftOrderService],
     controllers: [GiftOrderController],
     exports: [GiftOrderService]

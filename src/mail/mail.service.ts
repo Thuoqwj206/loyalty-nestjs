@@ -20,8 +20,8 @@ export class MailService {
         });
     }
 
-    async sendRequestAdminConfirm(store: Store, hashed: string) {
-        const url = `${process.env.APP_URL}/store/confirm?email=${store.email}&token=${hashed}`
+    async sendRequestAdminConfirm(store: Store, token: string) {
+        const url = `${process.env.APP_URL}/store/confirm?email=${store.email}&token=${token}`
         await this.mailerService.sendMail({
             to: process.env.ADMIN_ADDRESS,
             subject: 'We have login request, confirm it by the link below',
@@ -30,18 +30,6 @@ export class MailService {
                 name: store?.name,
                 email: store?.email,
                 url,
-            },
-        });
-    }
-
-    async sendUserConfirmationEmail(user: User, otp: string) {
-        await this.mailerService.sendMail({
-            to: user.email,
-            subject: 'Welcome to LOYALTY App! Confirm your Email',
-            template: './user-otp-verify',
-            context: {
-                name: user?.name,
-                otp: otp
             },
         });
     }

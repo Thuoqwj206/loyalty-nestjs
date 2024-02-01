@@ -7,7 +7,8 @@ import { GiftOrder, Store } from "src/model";
 import { GiftService } from "../gift/gift.service";
 import { GiftExchangeService } from "../gift-exchange/gift-exchange.service";
 import { CreateGiftExchangeDTO } from "../gift-exchange/dtos";
-import { GIFT_MESSAGES, USER_MESSAGES } from "src/constant/messages";
+import { GIFT_MESSAGES, ORDER_MESSAGES, USER_MESSAGES } from "src/constant/messages";
+import { CreateGiftOrderDTO } from "./dtos";
 
 @Injectable()
 export class GiftOrderService {
@@ -45,17 +46,17 @@ export class GiftOrderService {
         return null
     }
 
-    async createNewGiftOrder(userId: number, store: Store) {
-        const user = await this.userService.findOne(userId)
+    async createNewGiftOrder(body: CreateGiftOrderDTO, store: Store) {
+        const user = await this.userService.findByPhone(body.phone)
         if (!user) {
             throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
         }
-        const targetStore = await this.storeService.findOne(store.id)
-        const newGiftOrder = this.giftOrderRepository.create({
+        const targetStore = await this.storeService.findByEmail(store.email)
+        const newGiftOrder = await this.giftOrderRepository.create({
             user: user,
             store: targetStore,
-        })
-        await this.giftOrderRepository.save(newGiftOrder)
+        }).save()
+        return this.giftOrderRepository.findOne({ where: { id: newGiftOrder.id }, select: ['id', 'createDate'] })
     }
 
     async completeGiftOrder(id: number) {
@@ -68,26 +69,36 @@ export class GiftOrderService {
             giftOrder.totalPoints += (giftExchange.gift?.pointRequired * giftExchange.quantity)
             await this.giftService.reduceQuantity(giftExchange.gift.id, giftExchange.quantity)
         })
-        giftOrder.user = await this.userService.accumulatePoint(giftOrder.user, giftOrder.totalPoints)
-        return await this.giftOrderRepository.save({
+        if (giftOrder.user.point < giftOrder.totalPoints) {
+            throw new NotAcceptableException('You dont have enough point')
+        }
+        await this.userService.reducePoint(giftOrder.user.id, giftOrder.totalPoints)
+        const newOrder = await this.giftOrderRepository.save({
             ...giftOrder,
             giftExchanges,
             createDate: new Date()
         })
+        return { id: newOrder.id, Items: newOrder.giftExchanges, Price: newOrder.totalPoints, Created: newOrder.createDate }
     }
 
     async addGiftExchange(id: number, body: CreateGiftExchangeDTO) {
         const { giftId, quantity } = body
         const gift = await this.giftService.findOne(giftId)
+        const existOrder = await this.giftOrderRepository.findOne({ where: { id } })
+        if (!existOrder) {
+            throw new NotFoundException(ORDER_MESSAGES.NOT_FOUND)
+        }
         if (!gift) {
             throw new NotFoundException(GIFT_MESSAGES.NOT_FOUND)
+        }
+        if (existOrder.totalPoints > 0) {
+            throw new NotAcceptableException(ORDER_MESSAGES.ORDER_CANNOT_OVERRIDE)
         }
         if (quantity > gift.quantityAvailable) {
             throw new NotAcceptableException(GIFT_MESSAGES.REDUCTION_QUANTITY_GREATER_THAN_AVAILABLE)
         }
         const giftOrder = await this.giftOrderRepository.findOne({ where: { id } })
-        const newGiftExchange = this.giftExchangeService.createGiftExchange(giftOrder, quantity, gift)
-        return newGiftExchange
+        return this.giftExchangeService.createGiftExchange(giftOrder, quantity, gift)
     }
 
 }   

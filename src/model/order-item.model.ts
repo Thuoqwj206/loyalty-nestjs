@@ -5,7 +5,7 @@ import { Order } from "./order.model";
 @Entity('order-item')
 export class OrderItem extends BaseEntity {
     @PrimaryGeneratedColumn()
-    public orderItemId: number
+    public id: number
 
     @ManyToOne(() => Order, order => order.orderItems)
     @JoinColumn()

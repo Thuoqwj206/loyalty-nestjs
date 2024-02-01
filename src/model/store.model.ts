@@ -1,11 +1,11 @@
 import { BaseEntity, Column, Entity, JoinColumn, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
 import { User } from "./user.model";
 import { Gift } from "./gift.model";
-import { EStatus } from "src/enum";
 import { Item } from "./item.model";
 import { Order } from "./order.model";
 import { GiftOrder } from "./gift-order.model";
 import { Exclude } from "class-transformer";
+import { EStatus } from "src/enum";
 
 @Entity('stores')
 export class Store extends BaseEntity {
@@ -14,7 +14,8 @@ export class Store extends BaseEntity {
 
     @Column({
         type: 'varchar',
-        nullable: false
+        nullable: false,
+        unique: true
     })
     name: string
 
