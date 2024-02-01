@@ -1,15 +1,16 @@
 import { IsNotEmpty, IsPhoneNumber, IsString, IsStrongPassword } from "class-validator";
+import { STORE_MESSAGES } from "src/constant/messages";
 
 export class UpdateStoreDTO {
     @IsString()
-    @IsNotEmpty({ message: 'Please enter a valid name' })
+    @IsNotEmpty({ message: STORE_MESSAGES.EMPTY_NAME })
     name: string
 
-    @IsNotEmpty({ message: 'Please enter a valid value' })
+    @IsNotEmpty({ message: STORE_MESSAGES.EMPTY_PHONE })
     @IsPhoneNumber()
     phone: string
 
-    @IsString({ message: 'Please enter a password' })
+    @IsString({ message: STORE_MESSAGES.INVALID_PASSWORD })
     @IsStrongPassword()
     password: string
 }

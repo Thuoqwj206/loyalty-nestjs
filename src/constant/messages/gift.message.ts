@@ -12,5 +12,5 @@ export const GIFT_MESSAGES = {
   INVALID_QUANTITY_AVAILABLE: 'Please enter a number',
   EMPTY_QUANTITY_AVAILABLE: 'Please enter a number',
   NOT_ACCEPTED: 'GiftOrder can not be override',
-  DEAD_OTP: 'You are not accepted, please login later'
+
 };

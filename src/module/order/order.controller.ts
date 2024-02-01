@@ -17,9 +17,9 @@ export class OrderController {
         return await this.orderService.findAll()
     }
 
-    @Get('/:id')
-    async findStoreOrder(@Param('id') id: number) {
-        return await this.orderService.findStoreOrder(id)
+    @Get()
+    async findStoreOrder(@currentStore() store: Store) {
+        return await this.orderService.findStoreOrder(store)
     }
 
     @Post('/:userId/new')

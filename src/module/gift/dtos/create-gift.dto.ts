@@ -1,6 +1,6 @@
 import { Transform } from "class-transformer";
 import { IsDate, IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, IsUrl, MinDate } from "class-validator";
-import { GIFT_MESSAGES } from "src/common/messages";
+import { GIFT_MESSAGES } from "src/constant/messages";
 
 export class CreateGiftDTO {
     @IsString({ message: GIFT_MESSAGES.INVALID_NAME })

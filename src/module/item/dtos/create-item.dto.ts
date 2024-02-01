@@ -1,5 +1,5 @@
 import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsPhoneNumber, IsString } from "class-validator";
-import { ITEM_MESSAGES } from "src/common/messages/item.message";
+import { ITEM_MESSAGES } from "src/constant/messages/item.message";
 
 export class CreateItemDTO {
     @IsString({ message: ITEM_MESSAGES.INVALID_NAME })

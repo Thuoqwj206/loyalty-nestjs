@@ -5,6 +5,7 @@ import { EStatus } from "src/enum";
 import { Item } from "./item.model";
 import { Order } from "./order.model";
 import { GiftOrder } from "./gift-order.model";
+import { Exclude } from "class-transformer";
 
 @Entity('stores')
 export class Store extends BaseEntity {
@@ -32,6 +33,7 @@ export class Store extends BaseEntity {
         type: 'varchar',
         nullable: false
     })
+    @Exclude()
     password: string
 
     @Column({

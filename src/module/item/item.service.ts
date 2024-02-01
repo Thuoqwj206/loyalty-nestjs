@@ -4,7 +4,8 @@ import { Item, Store } from "src/model";
 import { Repository } from "typeorm";
 import { StoreService } from "../store/store.service";
 import { CreateItemDTO } from "./dtos";
-import { ITEM_MESSAGES } from "src/common/messages/item.message";
+import { ITEM_MESSAGES } from "src/constant/messages/item.message";
+import { UpdateItemDTO } from "./dtos/update-item.dto";
 
 @Injectable()
 export class ItemService {
@@ -15,11 +16,7 @@ export class ItemService {
     ) { }
 
     async findAll(): Promise<Item[]> {
-        const items = await this.itemRepository.find();
-        if (items) {
-            return items
-        }
-        return null
+        return await this.itemRepository.find();
     }
 
     async findOne(id: number): Promise<Item> {
@@ -30,16 +27,12 @@ export class ItemService {
         return null
     }
 
-    async findStoreItem(id: number): Promise<Item[]> {
-        const store = await this.storeService.findOne(id)
-        const items = await this.itemRepository.find({ where: { store } })
-        if (items) {
-            return items
-        }
-        return null
+    async findStoreItem(store: Store): Promise<Item[]> {
+        const targetStore = await this.storeService.findOne(store.id)
+        return await this.itemRepository.find({ where: { store: targetStore } })
     }
 
-    async addNewItem(body: CreateItemDTO, store) {
+    async addNewItem(body: CreateItemDTO, store: Store) {
         const { name } = body
         const item = await this.itemRepository.findOne({ where: { name } })
         if (item) {
@@ -53,6 +46,32 @@ export class ItemService {
         })
         return newItem
     }
+
+    async update(body: UpdateItemDTO, id: number): Promise<Item> {
+        const item = await this.itemRepository.findOne({ where: { id } })
+        if (!item) {
+            throw new NotAcceptableException(ITEM_MESSAGES.NOT_FOUND)
+        }
+        const existed = await this.itemRepository.findOne({ where: { name: body.name } })
+        if (existed) {
+            throw new NotAcceptableException(ITEM_MESSAGES.EXISTED_ITEM_NAME)
+        }
+        return await this.itemRepository.save({
+            ...item,
+            ...body
+        })
+    }
+
+
+    async delete(id: number) {
+        const item = await this.itemRepository.findOne({ where: { id } })
+        if (!item) {
+            throw new NotFoundException(ITEM_MESSAGES.NOT_FOUND)
+        }
+        this.itemRepository.remove(item)
+        return ITEM_MESSAGES.DELETED
+    }
+
 
     async addQuantity(id: number, quantity: number) {
         const item = await this.itemRepository.findOne({ where: { id } })
@@ -78,5 +97,7 @@ export class ItemService {
             quantityAvailable: item.quantityAvailable - quantity
         })
     }
+
+
 
 }   

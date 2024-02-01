@@ -8,6 +8,7 @@ import { User } from 'src/model/user.model';
 import { AdminModule } from '../admin/admin.module';
 import { UsersController } from './user.controller';
 import { UserService } from './user.service';
+import { IoRedisModule } from 'src/services/redis/redis.module';
 
 @Module({
     imports: [TwilioModule.forRootAsync({
@@ -17,7 +18,7 @@ import { UserService } from './user.service';
             authToken: cfg.get('TWILIO_AUTH_TOKEN'),
         }),
         inject: [ConfigService],
-    }), TypeOrmModule.forFeature([User]), AdminModule, CacheModule.register()],
+    }), TypeOrmModule.forFeature([User]), AdminModule, CacheModule.register(), IoRedisModule],
     providers: [UserService,],
     controllers: [UsersController],
     exports: [UserService]
