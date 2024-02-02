@@ -11,9 +11,10 @@ import { StoresController } from './store.controller';
 import { StoreService } from './store.service';
 import { ItemModule } from '../item/item.module';
 import { GiftModule } from '../gift/gift.module';
+import { CloudinaryModule } from 'src/services/cloudinary/cloudinary.module';
 
 @Module({
-    imports: [UserModule, IoRedisModule, JwtModule.register(jwtConfig), TypeOrmModule.forFeature([Store]), GiftModule, MailModule, ItemModule],
+    imports: [UserModule, CloudinaryModule, IoRedisModule, JwtModule.register(jwtConfig), TypeOrmModule.forFeature([Store]), GiftModule, MailModule, ItemModule],
     providers: [StoreService],
     controllers: [StoresController],
     exports: [StoreService]

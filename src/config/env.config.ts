@@ -19,3 +19,6 @@ export const REDIS_HOST: string = process.env.REDIS_HOST || '+18787686710'
 export const REDIS_PORT: number = +process.env.REDIS_PORT || 49153
 export const REDIS_USER: string = process.env.REDIS_USER || 'default'
 export const REDIS_PASSWORD: string = process.env.REDIS_PASSWORD || 'redispw'
+export const CLOUDINARY_NAME: string = process.env.CLOUDINARY_NAME || 'dit2copzb'
+export const CLOUDINARY_KEY: string = process.env.CLOUDINARY_KEY || '855348517414366'
+export const CLOUDINARY_SECRET: string = process.env.CLOUDINARY_SECRET || '89YJbgyfk5d1Wy4AxU5UK9Sm_Qw'

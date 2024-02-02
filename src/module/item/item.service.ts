@@ -42,7 +42,7 @@ export class ItemService {
         } else { return true }
     }
 
-    async addNewItem(body: CreateItemDTO, store: Store): Promise<Item> {
+    async addNewItem(body: CreateItemDTO, store: Store, file: Express.Multer.File): Promise<Item> {
         const { name } = body
         const item = await this.itemRepository.findOne({ where: { name } })
         if (item) {
@@ -51,12 +51,13 @@ export class ItemService {
         const newItem = await this.itemRepository.create(body)
         await this.itemRepository.save({
             ...newItem,
-            store: store
+            store: store,
+            image: file
         })
         return newItem
     }
 
-    async update(body: UpdateItemDTO, id: number): Promise<Item> {
+    async update(body: UpdateItemDTO, id: number, file: Express.Multer.File): Promise<Item> {
         const item = await this.itemRepository.findOne({ where: { id } })
         if (!item) {
             throw new NotAcceptableException(ITEM_MESSAGES.NOT_FOUND)
@@ -67,7 +68,8 @@ export class ItemService {
         }
         return this.itemRepository.save({
             ...item,
-            ...body
+            ...body,
+            image: file
         })
     }
 

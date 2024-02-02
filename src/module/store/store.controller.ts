@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Redirect, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Redirect, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { RolesGuard } from "src/common/guard/role.guard";
 import { currentStore } from "src/decorator/current-store.decorator";
 import { Roles } from "src/decorator/role.decorator";
@@ -13,6 +13,7 @@ import { CreateItemDTO } from "../item/dtos";
 import { UpdateItemDTO } from "../item/dtos/update-item.dto";
 import { CreateGiftDTO } from "../gift/dtos";
 import { UpdateGiftDTO } from "../gift/dtos/update-gift.dto";
+import { FileInterceptor } from "@nestjs/platform-express";
 
 @Controller('store')
 export class StoresController {
@@ -56,15 +57,17 @@ export class StoresController {
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     @Post('/gifts')
-    async createGift(@Body() body: CreateGiftDTO, @currentStore() store) {
-        return this.storeService.addStoreGift(store, body)
+    @UseInterceptors(FileInterceptor('image'))
+    async createGift(@Body() body: CreateGiftDTO, @currentStore() store, @UploadedFile() file: Express.Multer.File) {
+        return this.storeService.addStoreGift(store, body, file)
     }
 
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     @Put('/gifts/:giftId')
-    async updateStoreGift(@currentStore() store: Store, @Body() body: UpdateGiftDTO, @Param('giftId') id: number) {
-        return this.storeService.updateStoreGift(store, body, id)
+    @UseInterceptors(FileInterceptor('image'))
+    async updateStoreGift(@currentStore() store: Store, @Body() body: UpdateGiftDTO, @Param('giftId') id: number, @UploadedFile() file: Express.Multer.File) {
+        return this.storeService.updateStoreGift(store, body, id, file)
     }
 
     @Roles(ERole.STORE)
@@ -84,15 +87,17 @@ export class StoresController {
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     @Post('/items')
-    async createItem(@Body() body: CreateItemDTO, @currentStore() store) {
-        return this.storeService.addStoreItem(store, body)
+    @UseInterceptors(FileInterceptor('image'))
+    async createItem(@Body() body: CreateItemDTO, @currentStore() store, @UploadedFile() file: Express.Multer.File) {
+        return this.storeService.addStoreItem(store, body, file)
     }
 
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     @Put('/items/:itemId')
-    async updateStoreItem(@currentStore() store: Store, @Body() body: UpdateItemDTO, @Param('itemId') id: number) {
-        return this.storeService.updateCurrentStoreItem(store, body, id)
+    @UseInterceptors(FileInterceptor('image'))
+    async updateStoreItem(@currentStore() store: Store, @Body() body: UpdateItemDTO, @Param('itemId') id: number, file: Express.Multer.File) {
+        return this.storeService.updateCurrentStoreItem(store, body, id, file)
     }
 
 
@@ -136,5 +141,11 @@ export class StoresController {
     @Get('/confirm')
     async confirmStore(@Query('email') email: string, @Query('token') token: string) {
         return this.storeService.confirmStore(email, token)
+    }
+
+    @Post('/upload')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadImage(@UploadedFile() file: Express.Multer.File) {
+        return this.storeService.uploadImageToCloudinary(file);
     }
 }

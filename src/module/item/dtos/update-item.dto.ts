@@ -1,3 +1,4 @@
+import { Type } from "class-transformer"
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator"
 import { ITEM_MESSAGES } from "src/constant/messages/item.message"
 export class UpdateItemDTO {
@@ -10,12 +11,12 @@ export class UpdateItemDTO {
     @IsOptional()
     image?: string
 
-    @IsNumber()
+    @Type(() => Number)
     @IsNotEmpty({ message: ITEM_MESSAGES.EMPTY_PRICE })
     @IsOptional()
     price?: number
 
-    @IsNumber()
+    @Type(() => Number)
     @IsNotEmpty({ message: ITEM_MESSAGES.EMPTY_QUANTITY_AVAILABLE })
     @IsOptional()
     quantityAvailable?: number

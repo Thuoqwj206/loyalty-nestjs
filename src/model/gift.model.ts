@@ -1,6 +1,7 @@
 import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
 import { Store } from "./store.model";
 import { GiftExchange } from "./gift-exchange.model";
+import { Url } from "url";
 
 @Entity('gifts')
 export class Gift extends BaseEntity {
@@ -15,7 +16,7 @@ export class Gift extends BaseEntity {
     @Column({
         type: 'varchar',
     })
-    image: string
+    image: Url
 
     @Column({
         type: 'int'
