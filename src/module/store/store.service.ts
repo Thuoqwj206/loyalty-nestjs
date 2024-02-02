@@ -77,7 +77,6 @@ export class StoreService {
 
     async addStoreItem(store: Store, body: CreateItemDTO, file: Express.Multer.File): Promise<Item> {
         const img = await this.uploadImageToCloudinary(file)
-        console.log(img)
         return this.itemService.addNewItem(body, store, img.url)
     }
 
@@ -154,6 +153,7 @@ export class StoreService {
             throw new NotAcceptableException(STORE_MESSAGES.WAIT_FOR_ADMIN)
         }
         const token = await this.generateToken(existedStore)
+        await this.redisService.setExpire(String(existedStore.id), token, STORE_CONSTANTS.LOGOUT_TOKEN_TIME)
         const returnStore = await this.storesRepository.findOne({ where: { id: existedStore.id }, select: ['name', 'email', 'phone'] })
         return { store: returnStore, token: token }
     }
@@ -209,7 +209,7 @@ export class StoreService {
             throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
         const token = await this.redisService.get(String(store.id))
-        await this.redisService.setExpire(token, 1, STORE_CONSTANTS.LOGOUT_TOKEN)
+        await this.redisService.setExpire(token, 1, STORE_CONSTANTS.LOGOUT_TOKEN_TIME)
         return { message: STORE_MESSAGES.LOGOUT }
     }
 

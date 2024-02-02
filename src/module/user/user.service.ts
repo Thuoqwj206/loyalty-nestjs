@@ -262,7 +262,7 @@ export class UserService {
             throw new NotFoundException()
         }
         const token = await this.redisService.get(String(user.id))
-        await this.redisService.setExpire(token, 1, 432000)
+        await this.redisService.setExpire(token, 1, USER_CONSTANTS.TOKEN_EXPIRE_TIME)
         return { message: USER_MESSAGES.LOGOUT }
     }
 
