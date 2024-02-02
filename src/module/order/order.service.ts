@@ -107,8 +107,9 @@ export class OrderService {
             const newOrder = await queryRunner.manager.save(Order, {
                 ...order,
                 orderItems,
-                createDate: false
+                createDate: new Date()
             })
+            await queryRunner.commitTransaction();
             return { id: newOrder.id, Items: newOrder.orderItems, Price: newOrder.totalPrice, Created: newOrder.createDate }
 
         } catch (error) {

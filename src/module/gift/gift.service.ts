@@ -98,7 +98,7 @@ export class GiftService {
         })
     }
 
-    async reduceQuantity(id: number, quantity: number) {
+    async reduceQuantity(id: number, quantity: number): Promise<{ gift: Gift, newQuantity: number }> {
         const gift = await this.giftRepository.findOne({ where: { id } })
         if (!gift) {
             throw new NotFoundException(GIFT_MESSAGES.NOT_FOUND)
@@ -106,10 +106,8 @@ export class GiftService {
         if (gift.quantityAvailable < quantity) {
             throw new NotAcceptableException(GIFT_MESSAGES.REDUCTION_QUANTITY_GREATER_THAN_AVAILABLE(quantity, gift.quantityAvailable))
         }
-        return this.giftRepository.save({
-            ...gift,
-            quantityAvailable: gift.quantityAvailable - quantity
-        })
+        const newQuantity = gift.quantityAvailable - quantity
+        return { gift, newQuantity }
     }
 
 }   

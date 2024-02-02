@@ -145,15 +145,13 @@ export class UserService {
         return user
     }
 
-    async reducePoint(id: number, point: number): Promise<User> {
+    async reducePoint(id: number, point: number): Promise<{ user: User, newPoint: number }> {
         const user = await this.usersRepository.findOne({ where: { id: id } })
         if (!user) {
             throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
         }
-        return this.usersRepository.save({
-            ...user,
-            point: user.point - point
-        })
+        const newPoint = user.point - point
+        return { user, newPoint }
     }
 
 
@@ -184,6 +182,7 @@ export class UserService {
                 bonus = 10000
             }
         }
+
         switch (user.Rank) {
             case ERank.BRONZE: {
                 this.handleUpperRank(user, point, bonus, price, this.rankDiff.BRONZE)

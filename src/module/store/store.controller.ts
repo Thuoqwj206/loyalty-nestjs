@@ -32,7 +32,7 @@ export class StoresController {
         return this.storeService.updateCurrentStoreUser(store, body, id)
     }
 
-    @Put('/users/add-point/:userId')
+    @Put('/users/:userId/add-point')
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     async addUserPoint(@currentStore() store: Store, @Body() body: AddUserPointDTO, @Param('userId') id: number) {
