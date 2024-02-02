@@ -16,5 +16,7 @@ export const STORE_MESSAGES = {
     STORE_NOT_FOUND: 'Store not found',
     LOGOUT: 'Logout successfully',
     SENT_EMAIL: 'The verification link is sent to your email. Please confirm it',
-    WAIT_FOR_ADMIN: 'Please waiting for confirmation from admin'
+    WAIT_FOR_ADMIN: 'Please waiting for confirmation from admin',
+    USER_NOT_BELONG: 'This user isnt belong to your store',
+    NOT_VERIFIED: 'You are not verified',
 };

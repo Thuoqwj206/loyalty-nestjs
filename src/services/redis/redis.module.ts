@@ -2,6 +2,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
 import 'dotenv/config'
+import { REDIS_HOST, REDIS_PASSWORD, REDIS_PORT } from 'src/config';
 @Module({
   imports: [
     RedisModule.forRootAsync({
@@ -9,9 +10,9 @@ import 'dotenv/config'
         return {
           config: {
             global: true,
-            host: process.env.REDIS_HOST,
-            port: +process.env.REDIS_PORT,
-            password: process.env.REDIS_PASSWORD,
+            host: REDIS_HOST,
+            port: REDIS_PORT,
+            password: REDIS_PASSWORD,
           },
         };
       },

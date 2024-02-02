@@ -3,27 +3,27 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { STORE_MESSAGES, USER_MESSAGES } from 'src/constant/messages';
+import { EStatus } from 'src/enum';
 import { ERole } from 'src/enum/role.enum';
 import { MailService } from 'src/mail/mail.service';
+import { Gift, Item } from 'src/model';
 import { Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
+import { RedisService } from 'src/services/redis/redis.service';
 import { Repository } from 'typeorm';
+import { CreateGiftDTO } from '../gift/dtos';
+import { UpdateGiftDTO } from '../gift/dtos/update-gift.dto';
+import { GiftService } from '../gift/gift.service';
+import { CreateItemDTO } from '../item/dtos';
+import { UpdateItemDTO } from '../item/dtos/update-item.dto';
+import { ItemService } from '../item/item.service';
+import { OTPConfirmDTO, UpdateUserDTO } from '../user/dtos';
+import { AddUserPointDTO } from '../user/dtos/add-point.dto';
 import { UserService } from '../user/user.service';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
 import { UpdateStoreDTO } from './dtos/update-store.dto';
-import { RedisService } from 'src/services/redis/redis.service';
-import { OTPConfirmDTO, UpdateUserDTO } from '../user/dtos';
-import { EStatus } from 'src/enum';
-import { AddUserPointDTO } from '../user/dtos/add-point.dto';
-import { currentStore } from 'src/decorator/current-store.decorator';
-import { ItemService } from '../item/item.service';
-import { Gift, Item } from 'src/model';
-import { UpdateItemDTO } from '../item/dtos/update-item.dto';
-import { CreateItemDTO } from '../item/dtos';
-import { GiftService } from '../gift/gift.service';
-import { CreateGiftDTO } from '../gift/dtos';
-import { UpdateGiftDTO } from '../gift/dtos/update-gift.dto';
+import { STORE_CONSTANTS } from 'src/constant';
 
 @Injectable()
 export class StoreService {
@@ -51,28 +51,28 @@ export class StoreService {
     async updateCurrentStoreUser(store: Store, body: UpdateUserDTO, id: number): Promise<User> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.userService.isUserInStore(id, currentStore) == false) {
-            throw new NotAcceptableException('This user isnt belong to your store')
+            throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
         return this.userService.updateUser(body, id)
     }
 
-    async deleteCurrentStoreUser(store: Store, id: number) {
+    async deleteCurrentStoreUser(store: Store, id: number): Promise<{ message: string }> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.userService.isUserInStore(id, currentStore) == false) {
-            throw new NotAcceptableException('This user isnt belong to your store')
+            throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
         return this.userService.deleteUser(id)
     }
 
-    async addCurrentUserPoint(store: Store, body: AddUserPointDTO, id: number,) {
+    async addCurrentUserPoint(store: Store, body: AddUserPointDTO, id: number): Promise<User> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.userService.isUserInStore(id, currentStore) == false) {
-            throw new NotAcceptableException('This user isnt belong to your store')
+            throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
         return this.userService.addPoint(id, body.point)
     }
 
-    async addStoreItem(store: Store, body: CreateItemDTO) {
+    async addStoreItem(store: Store, body: CreateItemDTO): Promise<Item> {
         return this.itemService.addNewItem(body, store)
     }
 
@@ -84,15 +84,15 @@ export class StoreService {
     async updateCurrentStoreItem(store: Store, body: UpdateItemDTO, id: number): Promise<Item> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.itemService.isItemInStore(id, currentStore) == false) {
-            throw new NotAcceptableException('This user isnt belong to your store')
+            throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
         return this.itemService.update(body, id)
     }
 
-    async deleteCurrentStoreItem(store: Store, id: number) {
+    async deleteCurrentStoreItem(store: Store, id: number): Promise<{ message: string }> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.itemService.isItemInStore(id, currentStore) == false) {
-            throw new NotAcceptableException('This user isnt belong to your store')
+            throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
         return this.itemService.delete(id)
     }
@@ -109,15 +109,15 @@ export class StoreService {
     async updateStoreGift(store: Store, body: UpdateGiftDTO, id: number): Promise<Gift> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.giftService.isGiftInStore(id, currentStore) == false) {
-            throw new NotAcceptableException('This user isnt belong to your store')
+            throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
         return this.giftService.update(body, id)
     }
 
-    async deleteStoreGift(store: Store, id: number) {
+    async deleteStoreGift(store: Store, id: number): Promise<{ message: string }> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.giftService.isGiftInStore(id, currentStore) == false) {
-            throw new NotAcceptableException('This user isnt belong to your store')
+            throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
         return this.giftService.delete(id)
     }
@@ -141,10 +141,10 @@ export class StoreService {
             throw new NotFoundException(STORE_MESSAGES.WRONG_PASSWORD)
         }
         if (!existedStore.email_verified_at) {
-            throw new NotAcceptableException('You are not verified')
+            throw new NotAcceptableException(STORE_MESSAGES.NOT_VERIFIED)
         }
         if (existedStore.status == EStatus.INVALIDATED) {
-            throw new NotAcceptableException('Please waiting for admin acceptance')
+            throw new NotAcceptableException(STORE_MESSAGES.WAIT_FOR_ADMIN)
         }
         const token = await this.generateToken(existedStore)
         const returnStore = await this.storesRepository.findOne({ where: { id: existedStore.id }, select: ['name', 'email', 'phone'] })
@@ -202,7 +202,7 @@ export class StoreService {
             throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
         const token = await this.redisService.get(String(store.id))
-        await this.redisService.setExpire(token, 1, 420000)
+        await this.redisService.setExpire(token, 1, STORE_CONSTANTS.LOGOUT_TOKEN)
         return { message: STORE_MESSAGES.LOGOUT }
     }
 
@@ -229,7 +229,7 @@ export class StoreService {
                 email_verified_at: new Date()
             })
             const returnStore = await this.storesRepository.findOne({ where: { id: store.id }, select: ['name', 'email', 'phone'] })
-            return { returnStore, message: 'You are verified' }
+            return { returnStore, message: STORE_MESSAGES.NOT_VERIFIED }
         }
         else {
             throw new NotFoundException(STORE_MESSAGES.PLEASE_RECHECK_EMAIL)

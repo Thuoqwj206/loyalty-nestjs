@@ -10,7 +10,6 @@ export class OrderItemService {
         private orderItemRepository: Repository<OrderItem>,
 
     ) { }
-
     async findItemsOfOrder(order: Order): Promise<OrderItem[]> {
         return this.orderItemRepository.find({ relations: ['item'], where: { order: order } });
     }

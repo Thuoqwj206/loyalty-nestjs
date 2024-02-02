@@ -1,9 +1,9 @@
 import { Inject, Injectable, NotAcceptableException, NotFoundException, forwardRef } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { StoreService } from "../store/store.service";
 import { UserService } from "../user/user.service";
-import { GiftOrder, Store } from "src/model";
+import { Gift, GiftOrder, Store, User } from "src/model";
 import { GiftService } from "../gift/gift.service";
 import { GiftExchangeService } from "../gift-exchange/gift-exchange.service";
 import { CreateGiftExchangeDTO } from "../gift-exchange/dtos";
@@ -15,6 +15,7 @@ export class GiftOrderService {
     constructor(
         @InjectRepository(GiftOrder)
         private giftOrderRepository: Repository<GiftOrder>,
+        private dataSource: DataSource,
         private readonly storeService: StoreService,
         private readonly userService: UserService,
         private readonly giftService: GiftService,
@@ -65,20 +66,37 @@ export class GiftOrderService {
             throw new NotAcceptableException(GIFT_MESSAGES.NOT_ACCEPTED)
         }
         const giftExchanges = await this.giftExchangeService.findExchangesOfGiftOrder(giftOrder)
-        giftExchanges.map(async (giftExchange) => {
-            giftOrder.totalPoints += (giftExchange.gift?.pointRequired * giftExchange.quantity)
-            await this.giftService.reduceQuantity(giftExchange.gift.id, giftExchange.quantity)
-        })
-        if (giftOrder.user.point < giftOrder.totalPoints) {
-            throw new NotAcceptableException('You dont have enough point')
+        const queryRunner = this.dataSource.createQueryRunner()
+        await queryRunner.connect()
+        await queryRunner.startTransaction()
+        try {
+            giftExchanges.map(async (giftExchange) => {
+                giftOrder.totalPoints += (giftExchange.gift?.pointRequired * giftExchange.quantity)
+                const result = await this.giftService.reduceQuantity(giftExchange.gift.id, giftExchange.quantity)
+                await queryRunner.manager.save(Gift, {
+                    ...result.gift,
+                    quantityAvailable: result.newQuantity
+                })
+            })
+            if (giftOrder.user.point < giftOrder.totalPoints) {
+                throw new NotAcceptableException('You dont have enough point')
+            }
+            const result = await this.userService.reducePoint(giftOrder.user.id, giftOrder.totalPoints)
+            await queryRunner.manager.save(User, {
+                ...result.user,
+                point: result.newPoint
+            })
+            const newOrder = await queryRunner.manager.save(GiftOrder, {
+                ...giftOrder,
+                giftExchanges,
+                createDate: new Date()
+            })
+            await queryRunner.commitTransaction();
+            return { id: newOrder.id, Items: newOrder.giftExchanges, Price: newOrder.totalPoints, Created: newOrder.createDate }
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw new NotAcceptableException(`Order Failed: ${error}`);
         }
-        await this.userService.reducePoint(giftOrder.user.id, giftOrder.totalPoints)
-        const newOrder = await this.giftOrderRepository.save({
-            ...giftOrder,
-            giftExchanges,
-            createDate: new Date()
-        })
-        return { id: newOrder.id, Items: newOrder.giftExchanges, Price: newOrder.totalPoints, Created: newOrder.createDate }
     }
 
     async addGiftExchange(id: number, body: CreateGiftExchangeDTO) {

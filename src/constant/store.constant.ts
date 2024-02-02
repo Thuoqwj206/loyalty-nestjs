@@ -1,0 +1,3 @@
+export const STORE_CONSTANTS = {
+    LOGOUT_TOKEN: 420000
+};

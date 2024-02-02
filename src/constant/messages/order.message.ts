@@ -9,4 +9,6 @@ export const ORDER_MESSAGES = {
     ORDER_CANNOT_OVERRIDE: 'Order cannot be overridden',
     NOT_FOUND_ITEM: 'Item not found',
     ITEM_QUANTITY_INSUFFICIENT: 'Item does not have enough quantity',
+    ORDER_FAILED: (error: string) => `Order Failed: ${error}`,
+    ITEM_IN_CART: 'This item is already in cart'
 };
