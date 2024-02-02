@@ -2,13 +2,16 @@ import { IsEmail, IsOptional, IsString, IsStrongPassword } from "class-validator
 import { USER_MESSAGES } from "src/constant/messages"
 
 export class UpdateUserDTO {
-    @IsOptional() @IsString()
+    @IsString()
+    @IsOptional()
     name: string
 
-    @IsOptional() @IsEmail()
+    @IsEmail()
+    @IsOptional()
     email: string
 
-    @IsOptional() @IsString({ message: USER_MESSAGES.INVALID_PASSWORD })
+    @IsString({ message: USER_MESSAGES.INVALID_PASSWORD })
     @IsStrongPassword()
+    @IsOptional()
     password: string
 }

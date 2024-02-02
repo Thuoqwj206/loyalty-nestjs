@@ -2,13 +2,16 @@ import { IsNotEmpty, IsOptional, IsPhoneNumber, IsString, IsStrongPassword } fro
 import { STORE_MESSAGES } from "src/constant/messages";
 
 export class UpdateStoreDTO {
-    @IsOptional() @IsString()
+    @IsString()
+    @IsOptional()
     name: string
 
-    @IsOptional() @IsPhoneNumber()
+    @IsPhoneNumber()
+    @IsOptional()
     phone: string
 
-    @IsOptional() @IsString({ message: STORE_MESSAGES.INVALID_PASSWORD })
+    @IsString({ message: STORE_MESSAGES.INVALID_PASSWORD })
     @IsStrongPassword()
+    @IsOptional()
     password: string
 }

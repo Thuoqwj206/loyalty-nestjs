@@ -9,7 +9,7 @@ export class CreateGiftDTO {
 
     @IsString({ message: GIFT_MESSAGES.INVALID_IMAGE })
     @IsOptional()
-    image: string
+    image?: string
 
     @IsNumber()
     @IsNotEmpty({ message: GIFT_MESSAGES.EMPTY_POINT_REQUIRED })
