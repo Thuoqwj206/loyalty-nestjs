@@ -13,6 +13,7 @@ import { Repository } from 'typeorm';
 import { CreateUserDTO, LoginUserDTO, OTPConfirmDTO, RegisterUserDTO, UpdateUserDTO } from './dtos';
 import { USER_CONSTANTS } from 'src/constant';
 import { TWILIO_PHONE_NUMBER } from 'src/config';
+import { EFormula } from 'src/enum/store-enum/rank-formula.enum';
 @Injectable()
 export class UserService {
     constructor(
@@ -169,7 +170,8 @@ export class UserService {
     }
 
     async accumulatePoint(user: User, price: number): Promise<{ user: User, point: number }> {
-        let point = user.point
+        const targetUser = await this.usersRepository.findOne({ where: { id: user.id }, relations: ['store'] })
+        let point = targetUser.point
         point += USER_CONSTANTS.FIXED_POINT_ADDED(price)
         let bonus = 0
         if (price < USER_CONSTANTS.PRICE_BONUS_LEVEL) {
@@ -184,13 +186,11 @@ export class UserService {
                 bonus = USER_CONSTANTS.SECOND_BONUS_LIMIT
             }
         }
-        this.handleUpperRank(user, point, bonus, price, USER_CONSTANTS.RANK_DIFF[user.Rank])
-        return { user, point }
-    }
-
-
-    async handleUpperRank(user: User, point: number, bonus: number, price: number, addedPoint: number) {
-        bonus += ((price - (price % USER_CONSTANTS.PRICE_BONUS_LEVEL)) / USER_CONSTANTS.PRICE_BONUS_LEVEL) * addedPoint
+        if (targetUser.store.rankFormula == EFormula.LIMITATION) {
+            bonus += USER_CONSTANTS.LIMITATION_FORMULA(price, USER_CONSTANTS.RANK_DIFF[targetUser.Rank])
+        } else {
+            bonus += USER_CONSTANTS.PERCENTAGE_FORMULA(price, USER_CONSTANTS.PERCENT_DIFF[targetUser.Rank], USER_CONSTANTS.LIMIT_DIFF[user.Rank])
+        }
         point += bonus
         if (point >= USER_CONSTANTS.SILVER_POINT.MIN && point < USER_CONSTANTS.SILVER_POINT.MAX && user.Rank == ERank.BRONZE) {
             user.Rank = ERank.SILVER
@@ -198,6 +198,7 @@ export class UserService {
         else if (point >= USER_CONSTANTS.GOLD_POINT) {
             user.Rank = ERank.GOLD
         }
+        return { user, point }
     }
 
     async isUserInStore(id: number, store: Store): Promise<boolean> {

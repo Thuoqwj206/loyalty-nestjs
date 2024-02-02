@@ -148,4 +148,11 @@ export class StoresController {
     uploadImage(@UploadedFile() file: Express.Multer.File) {
         return this.storeService.uploadImageToCloudinary(file);
     }
+
+    @Put('/change-formula')
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    async changeFormula(@currentStore() store: Store) {
+        return this.storeService.changeFormula(store);
+    }
 }

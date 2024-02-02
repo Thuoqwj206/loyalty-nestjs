@@ -26,6 +26,7 @@ import { UpdateStoreDTO } from './dtos/update-store.dto';
 import { STORE_CONSTANTS } from 'src/constant';
 import { CloudinaryService } from 'src/services/cloudinary/cloudinary.service';
 import { Url } from 'twilio/lib/interfaces';
+import { EFormula } from 'src/enum/store-enum/rank-formula.enum';
 
 @Injectable()
 export class StoreService {
@@ -110,6 +111,19 @@ export class StoreService {
         const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
         return this.giftService.findStoreGift(targetStore)
     }
+
+    async changeFormula(store: Store): Promise<Store> {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (currentStore.rankFormula === EFormula.LIMITATION) {
+            currentStore.rankFormula = EFormula.PERCENTAGE
+        }
+        else currentStore.rankFormula = EFormula.LIMITATION
+        await this.storesRepository.save({
+            ...currentStore
+        })
+        return this.storesRepository.findOne({ where: { id: currentStore.id }, select: ['name', 'rankFormula'] })
+    }
+
 
     async updateStoreGift(store: Store, body: UpdateGiftDTO, id: number, file: Express.Multer.File): Promise<Gift> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
@@ -255,6 +269,8 @@ export class StoreService {
             return store
         }
     }
+
+
     async findByEmail(email: string): Promise<Store | null> {
         const store = await this.storesRepository.findOne({ where: { email } })
         if (store) {
