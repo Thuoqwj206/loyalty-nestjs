@@ -8,9 +8,10 @@ import { ERank, ERole } from 'src/enum';
 import { Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
 import { RedisService } from 'src/services/redis/redis.service';
-import { EntityManager, QueryRunner, Repository } from 'typeorm';
-import { RegisterUserDTO, OTPConfirmDTO, LoginUserDTO, CreateUserDTO, UpdateUserDTO } from './dtos';
 import Twilio from 'twilio/lib/rest/Twilio';
+import { Repository } from 'typeorm';
+import { CreateUserDTO, LoginUserDTO, OTPConfirmDTO, RegisterUserDTO, UpdateUserDTO } from './dtos';
+import { USER_CONSTANTS } from 'src/constant';
 @Injectable()
 export class UserService {
     constructor(
@@ -35,12 +36,12 @@ export class UserService {
         }
         const salt = await bcrypt?.genSalt(10)
         body.password = await bcrypt?.hash(body.password, salt)
-        const otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
+        const otp = String(Math.floor(USER_CONSTANTS.MIN_OTP + Math.random() * USER_CONSTANTS.MAX_OTP))
         const newUser = await this.usersRepository.create(body)
         await this.usersRepository.save(newUser)
-        await this.redisService.setExpire(newUser.phone, otp, 60000)
+        await this.redisService.setExpire(newUser.phone, otp, USER_CONSTANTS.OTP_EXPIRE_TIME)
         await this.sendSMS(otp, newUser.phone)
-        await this.redisService.setExpire(otp, 1, 30000)
+        await this.redisService.setExpire(otp, 1, USER_CONSTANTS.OTP_EXPIRE_TIME)
         return { message: USER_MESSAGES.SENT_OTP }
     }
 
@@ -71,7 +72,7 @@ export class UserService {
         }
         else {
             const currentTry: number = JSON.parse(await this.redisService.get(storedOTP))
-            await this.redisService.setExpire(String(storedOTP), currentTry + 1, 600000)
+            await this.redisService.setExpire(String(storedOTP), currentTry + 1, USER_CONSTANTS.OTP_EXPIRE_TIME)
             const result = Number(await this.redisService.get(storedOTP))
             if (result > 3) {
                 await this.usersRepository.delete(user.id)
@@ -90,8 +91,8 @@ export class UserService {
         if (!await bcrypt.compare(user.password, existedUser.password)) {
             throw new NotFoundException(STORE_MESSAGES.WRONG_PASSWORD)
         }
-        const otp = Math.floor(100000 + Math.random() * 900000) as unknown as string;
-        await this.redisService.setExpire(String(existedUser.id), otp, 60000)
+        const otp = Math.floor(USER_CONSTANTS.MIN_OTP + Math.random() * USER_CONSTANTS.MAX_OTP) as unknown as string;
+        await this.redisService.setExpire(String(existedUser.id), otp, USER_CONSTANTS.OTP_EXPIRE_TIME)
         await this.sendSMS(otp, existedUser.phone)
         return { message: USER_MESSAGES.SENT_OTP }
     }
@@ -102,7 +103,7 @@ export class UserService {
         if (storedOTP == body.otp) {
             const ReturnUserDTO = await this.usersRepository.find({ where: { id: user.id }, select: ['name', 'email', 'phone'] })
             const accessToken = await this.generateToken(user)
-            await this.redisService.setExpire(JSON.stringify(user.id), accessToken, 43200000)
+            await this.redisService.setExpire(JSON.stringify(user.id), accessToken, USER_CONSTANTS.TOKEN_EXPIRE_TIME)
             await this.redisService.del(String(storedOTP))
             return { ReturnUserDTO, accessToken }
         }
@@ -168,50 +169,32 @@ export class UserService {
 
     async accumulatePoint(user: User, price: number): Promise<{ user: User, point: number }> {
         let point = user.point
-        point += (price - (price % 100000)) / 1000
+        point += USER_CONSTANTS.FIXED_POINT_ADDED(price)
         let bonus = 0
-        if (price < 100000) {
+        if (price < USER_CONSTANTS.PRICE_BONUS_LEVEL) {
             bonus = Math.floor(price * 0.1)
-            if (bonus > 5000) {
-                bonus = 5000
+            if (bonus > USER_CONSTANTS.FIRST_BONUS_LIMIT) {
+                bonus = USER_CONSTANTS.FIRST_BONUS_RATE
             }
         }
-        else if (100000 < price) {
-            bonus = Math.floor(price * 0.2)
-            if (bonus > 10000) {
-                bonus = 10000
+        else if (USER_CONSTANTS.PRICE_BONUS_LEVEL < price) {
+            bonus = Math.floor(price * USER_CONSTANTS.SECOND_BONUS_RATE)
+            if (bonus > USER_CONSTANTS.SECOND_BONUS_LIMIT) {
+                bonus = USER_CONSTANTS.SECOND_BONUS_LIMIT
             }
         }
-
-        switch (user.Rank) {
-            case ERank.BRONZE: {
-                this.handleUpperRank(user, point, bonus, price, this.rankDiff.BRONZE)
-                break
-            }
-            case ERank.SILVER: {
-                this.handleUpperRank(user, point, bonus, price, this.rankDiff.SILVER)
-                break
-            }
-            case ERank.GOLD: {
-                this.handleUpperRank(user, point, bonus, price, this.rankDiff.GOLD)
-                break
-            }
-        }
+        this.handleUpperRank(user, point, bonus, price, USER_CONSTANTS.RANK_DIFF[user.Rank])
         return { user, point }
     }
-    rankDiff = {
-        'BRONZE': 5,
-        'SILVER': 10,
-        'GOLD': 15
-    }
+
 
     async handleUpperRank(user: User, point: number, bonus: number, price: number, addedPoint: number) {
-        bonus += ((price - (price % 100000)) / 100000) * addedPoint
+        bonus += ((price - (price % USER_CONSTANTS.PRICE_BONUS_LEVEL)) / USER_CONSTANTS.PRICE_BONUS_LEVEL) * addedPoint
         point += bonus
-        if (point >= 2000 && point < 5000 && user.Rank == ERank.BRONZE) {
+        if (point >= USER_CONSTANTS.SILVER_POINT.MIN && point < USER_CONSTANTS.SILVER_POINT.MAX && user.Rank == ERank.BRONZE) {
             user.Rank = ERank.SILVER
         }
-        else if (point >= 5000) {
+        else if (point >= USER_CONSTANTS.GOLD_POINT) {
             user.Rank = ERank.GOLD
         }
     }
