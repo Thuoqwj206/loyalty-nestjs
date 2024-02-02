@@ -11,15 +11,14 @@ export const USER_MESSAGES = {
     LOGOUT: 'Logout successfully',
     INVALID_PHONE: 'Please enter a valid phone number',
     EMPTY_PHONE: 'Phone number is required',
+    EMPTY_POINT: 'Point number is required',
     DELETED: 'Deleted Successfully',
     DEAD_OTP: 'You are not accepted, please login later',
     SENT_OTP: 'The OTP verification code is sent to your phone number. It would expire after 1 minute',
     USER_ALREADY_EXISTS: 'User already exists',
-    RECEIVE_OTP: (otp: string) => {
-        `Your OTP is ${otp}`
-    },
+    RECEIVE_OTP: `Your OTP is `,
     ATTEMPT_TIME: (currentTry: number) => {
-        `Wrong OTP, you have ${3 - currentTry} times left`
+        return `Wrong OTP, you have ${3 - currentTry} times left`
     }
 
 };

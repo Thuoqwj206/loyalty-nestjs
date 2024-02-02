@@ -28,11 +28,12 @@ export class GiftExchangeService {
     }
 
 
-    async createGiftExchange(order: GiftOrder, quantity: number, gift: Gift): Promise<GiftExchange> {
+    async createGiftExchange(order: GiftOrder, quantity: number, gift: Gift) {
         const newGiftExchange = await this.giftExchangeRepository.create({
             giftOrder: order, quantity, gift
         })
-        return await this.giftExchangeRepository.save(newGiftExchange)
+        await this.giftExchangeRepository.save(newGiftExchange)
+        return { order: order.id, item: gift.name, quantity: quantity }
     }
 
 }   

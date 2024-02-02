@@ -3,6 +3,7 @@ import { USER_MESSAGES } from "src/constant/messages";
 
 export class CreateUserDTO {
     @IsString()
+    @IsNotEmpty()
     name: string
 
     @IsNotEmpty({ message: USER_MESSAGES.EMPTY_PHONE })
@@ -16,8 +17,4 @@ export class CreateUserDTO {
     @IsString()
     @IsNotEmpty({ message: USER_MESSAGES.EMPTY_PASSWORD })
     password: string
-
-    // @IsNumber()
-    // @IsNotEmpty()
-    // storeId: number
 }

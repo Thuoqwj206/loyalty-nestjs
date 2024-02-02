@@ -11,28 +11,14 @@ export class OrderItemService {
 
     ) { }
 
-    async findAll(): Promise<OrderItem[]> {
-        const orders = await this.orderItemRepository.find();
-        if (orders) {
-            return orders
-        }
-        return null
-    }
-
     async findItemsOfOrder(order: Order): Promise<OrderItem[]> {
-        const orders = await this.orderItemRepository.find({ relations: ['item'], where: { order: order } });
-        if (orders) {
-            return orders
-        }
-        return null
+        return this.orderItemRepository.find({ relations: ['item'], where: { order: order } });
     }
-
-
-    async createOrderItem(order: Order, quantity: number, item: Item): Promise<OrderItem> {
-        const newOrderItem = await this.orderItemRepository.create({
+    async createOrderItem(order: Order, quantity: number, item: Item) {
+        await this.orderItemRepository.create({
             quantity, order, item
-        })
-        return await this.orderItemRepository.save(newOrderItem)
+        }).save()
+        return { order: order.id, item: item.name, quantity: quantity }
     }
 
 }   

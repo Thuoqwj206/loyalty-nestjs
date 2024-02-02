@@ -6,7 +6,6 @@ export class OTPConfirmDTO {
     @IsNotEmpty({ message: USER_MESSAGES.EMPTY_OTP })
     otp: string
 
-    @IsEmail()
     @IsNotEmpty({ message: USER_MESSAGES.EMPTY_EMAIL })
-    email: string
+    phone: string
 }

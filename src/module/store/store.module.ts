@@ -1,20 +1,19 @@
 
-import { Module, forwardRef } from '@nestjs/common';
-import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { jwtConfig } from 'src/config';
+import { MailModule } from 'src/mail/mail.module';
+import { Store } from 'src/model/store.model';
+import { IoRedisModule } from 'src/services/redis/redis.module';
+import { UserModule } from '../user/user.module';
 import { StoresController } from './store.controller';
 import { StoreService } from './store.service';
-import { Store } from 'src/model/store.model';
-import { MailModule } from 'src/mail/mail.module';
-import { MailService } from 'src/mail/mail.service';
-import { JwtModule } from '@nestjs/jwt';
-import { jwtConfig } from 'src/config';
-import { UserModule } from '../user/user.module';
-import { AdminModule } from '../admin/admin.module';
-import { CacheModule } from '@nestjs/cache-manager';
-import { IoRedisModule } from 'src/services/redis/redis.module';
+import { ItemModule } from '../item/item.module';
+import { GiftModule } from '../gift/gift.module';
 
 @Module({
-    imports: [UserModule, IoRedisModule, CacheModule.register(), JwtModule.register(jwtConfig), TypeOrmModule.forFeature([Store]), MailModule, AdminModule],
+    imports: [UserModule, IoRedisModule, JwtModule.register(jwtConfig), TypeOrmModule.forFeature([Store]), GiftModule, MailModule, ItemModule],
     providers: [StoreService],
     controllers: [StoresController],
     exports: [StoreService]

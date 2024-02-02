@@ -1,41 +1,48 @@
-import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { RolesGuard } from "src/common/guard/role.guard";
 import { currentStore } from "src/decorator/current-store.decorator";
 import { Roles } from "src/decorator/role.decorator";
 import { ERole } from "src/enum";
-import { CreateOrderDTO } from "./dtos";
-import { OrderService } from "./order.service";
 import { Store } from "src/model";
 import { CreateOrderItemDTO } from "../order-item/dtos";
+import { OrderService } from "./order.service";
+import { CreateOrderDTO } from "./dtos";
 
-@Controller('/order')
+@Controller('order')
 export class OrderController {
     constructor(private readonly orderService: OrderService) { }
-
     @Get()
-    async findAll() {
-        return await this.orderService.findAll()
-    }
-
-    @Get()
-    async findStoreOrder(@currentStore() store: Store) {
-        return await this.orderService.findStoreOrder(store)
-    }
-
-    @Post('/:userId/new')
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
-    async createNewOrder(@Param('userId') id: number, @currentStore() store: Store) {
-        return await this.orderService.createNewOrder(id, store)
+    async findStoreOrder(@currentStore() store: Store) {
+        return this.orderService.findStoreOrder(store)
+    }
+
+    @Get('/:orderId')
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    async getOrderDetail(@Param('orderId') id: number) {
+        return this.orderService.getOrderDetail(id)
+    }
+
+    @Post()
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
+    async createNewOrder(@Body() body: CreateOrderDTO, @currentStore() store: Store) {
+        return this.orderService.createNewOrder(body, store)
     }
 
     @Post('/:id')
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
     async addOrderItem(@Body() body: CreateOrderItemDTO, @Param('id') id: number) {
-        return await this.orderService.addOrderItem(id, body)
+        return this.orderService.addOrderItem(id, body)
     }
 
     @Post('/:id/complete')
+    @Roles(ERole.STORE)
+    @UseGuards(RolesGuard)
     async completeOrder(@Param('id') id: number) {
-        return await this.orderService.completeOrder(id)
+        return this.orderService.completeOrder(id)
     }
 }
