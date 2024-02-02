@@ -4,14 +4,14 @@ import { STORE_MESSAGES } from "src/constant/messages";
 export class UpdateStoreDTO {
     @IsString()
     @IsOptional()
-    name: string
+    name?: string
 
     @IsPhoneNumber()
     @IsOptional()
-    phone: string
+    phone?: string
 
     @IsString({ message: STORE_MESSAGES.INVALID_PASSWORD })
     @IsStrongPassword()
     @IsOptional()
-    password: string
+    password?: string
 }

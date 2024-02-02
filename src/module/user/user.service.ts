@@ -12,6 +12,7 @@ import Twilio from 'twilio/lib/rest/Twilio';
 import { Repository } from 'typeorm';
 import { CreateUserDTO, LoginUserDTO, OTPConfirmDTO, RegisterUserDTO, UpdateUserDTO } from './dtos';
 import { USER_CONSTANTS } from 'src/constant';
+import { TWILIO_PHONE_NUMBER } from 'src/config';
 @Injectable()
 export class UserService {
     constructor(
@@ -49,7 +50,7 @@ export class UserService {
     async sendSMS(otp: string, number: string): Promise<Twilio.RequestOptions> {
         return this.twilioService.client.messages.create({
             body: USER_MESSAGES.RECEIVE_OTP + otp,
-            from: process.env.TWILIO_PHONE_NUMBER,
+            from: TWILIO_PHONE_NUMBER,
             to: number,
         });
     }

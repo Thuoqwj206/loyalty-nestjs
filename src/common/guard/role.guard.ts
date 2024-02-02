@@ -4,6 +4,7 @@ import { JsonWebTokenError, JwtService } from "@nestjs/jwt";
 import 'dotenv/config';
 import { ERole } from "src/enum/role.enum";
 import { RedisService } from "../../services/redis/redis.service";
+import { SECRET_KEY } from "src/config";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -20,7 +21,7 @@ export class RolesGuard implements CanActivate {
         if (!token || await this.redisService.get(token)) {
             throw new UnauthorizedException();
         }
-        const payload = await this.jwt.verifyAsync(token, { secret: process.env.ACCESS_KEY });
+        const payload = await this.jwt.verifyAsync(token, { secret: SECRET_KEY });
         const userRoles = payload.role
         switch (userRoles) {
             case ERole.STORE:

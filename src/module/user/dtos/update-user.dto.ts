@@ -4,14 +4,14 @@ import { USER_MESSAGES } from "src/constant/messages"
 export class UpdateUserDTO {
     @IsString()
     @IsOptional()
-    name: string
+    name?: string
 
     @IsEmail()
     @IsOptional()
-    email: string
+    email?: string
 
     @IsString({ message: USER_MESSAGES.INVALID_PASSWORD })
     @IsStrongPassword()
     @IsOptional()
-    password: string
+    password?: string
 }
