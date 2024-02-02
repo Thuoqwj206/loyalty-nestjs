@@ -12,6 +12,7 @@ import { CreateUserDTO, UpdateUserDTO } from '../user/dtos';
 import { Store, User } from 'src/model';
 import { RegisterStoreDTO } from '../store/dtos/register-store.dto';
 import { UpdateStoreDTO } from '../store/dtos/update-store.dto';
+import { STORE_MESSAGES, USER_MESSAGES } from 'src/constant/messages';
 
 
 @Injectable()
@@ -35,10 +36,10 @@ export class AdminService {
     async login(body: LoginAdminDTO): Promise<{ admin: Admin, accessToken: string }> {
         const existedAdmin = await this.findByEmail(body.email)
         if (!existedAdmin) {
-            throw new NotFoundException('Not found Admin Email')
+            throw new NotFoundException(USER_MESSAGES.INVALID_EMAIL)
         }
         if (!await bcrypt.compare(body.password, existedAdmin.password)) {
-            throw new NotFoundException('Wrong password')
+            throw new NotFoundException(STORE_MESSAGES.WRONG_PASSWORD)
         }
         const admin = await this.adminsRepository.findOne({ where: { id: existedAdmin.id }, select: ['name', 'email'] })
         const accessToken = await this.generateToken(existedAdmin)

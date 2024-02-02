@@ -42,7 +42,7 @@ export class ItemService {
         } else { return true }
     }
 
-    async addNewItem(body: CreateItemDTO, store: Store) {
+    async addNewItem(body: CreateItemDTO, store: Store): Promise<Item> {
         const { name } = body
         const item = await this.itemRepository.findOne({ where: { name } })
         if (item) {
@@ -72,22 +72,22 @@ export class ItemService {
     }
 
 
-    async delete(id: number) {
+    async delete(id: number): Promise<{ message: string }> {
         const item = await this.itemRepository.findOne({ where: { id } })
         if (!item) {
             throw new NotFoundException(ITEM_MESSAGES.NOT_FOUND)
         }
         this.itemRepository.remove(item)
-        return ITEM_MESSAGES.DELETED
+        return { message: ITEM_MESSAGES.DELETED }
     }
 
 
-    async addQuantity(id: number, quantity: number) {
+    async addQuantity(id: number, quantity: number): Promise<Item> {
         const item = await this.itemRepository.findOne({ where: { id } })
         if (!item) {
             throw new NotFoundException(ITEM_MESSAGES.NOT_FOUND)
         }
-        this.itemRepository.save({
+        return this.itemRepository.save({
             ...item,
             quantityAvailable: item.quantityAvailable + quantity
         })

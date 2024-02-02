@@ -4,7 +4,6 @@ import { GIFT_MESSAGES } from "src/constant/messages";
 import { Gift, Store } from "src/model";
 import { MoreThan, Repository } from "typeorm";
 import { CreateGiftDTO } from "./dtos";
-import { ChangeQuantityDTO } from "./dtos/change-quantity.dto";
 import { UpdateGiftDTO } from "./dtos/update-gift.dto";
 
 @Injectable()
@@ -49,7 +48,7 @@ export class GiftService {
             expirationDate: MoreThan(new Date())
         })
     }
-    async addNewGift(body: CreateGiftDTO, store: Store) {
+    async addNewGift(body: CreateGiftDTO, store: Store): Promise<Gift> {
         const { name } = body
         const gift = await this.giftRepository.findOne({ where: { name } })
         if (gift) {
@@ -78,16 +77,16 @@ export class GiftService {
         })
     }
 
-    async delete(id: number) {
+    async delete(id: number): Promise<{ message: string }> {
         const item = await this.giftRepository.findOne({ where: { id } })
         if (!item) {
             throw new NotFoundException(GIFT_MESSAGES.NOT_FOUND)
         }
         this.giftRepository.remove(item)
-        return GIFT_MESSAGES.DELETED
+        return { message: GIFT_MESSAGES.DELETED }
     }
 
-    async addQuantity(id: number, quantity: number) {
+    async addQuantity(id: number, quantity: number): Promise<Gift> {
         const gift = await this.giftRepository.findOne({ where: { id } })
         if (!gift) {
             throw new NotFoundException(GIFT_MESSAGES.NOT_FOUND)

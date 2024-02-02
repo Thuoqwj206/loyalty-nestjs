@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { ORDER_MESSAGES } from "src/constant/messages";
 import { ITEM_MESSAGES } from "src/constant/messages/item.message";
 import { Item, Order, Store, User } from "src/model";
-import { DataSource, EntityManager, QueryRunner, Repository } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 import { ItemService } from "../item/item.service";
 import { CreateOrderItemDTO } from "../order-item/dtos";
 import { OrderItemService } from "../order-item/order-item.service";
@@ -114,7 +114,7 @@ export class OrderService {
 
         } catch (error) {
             await queryRunner.rollbackTransaction();
-            throw new NotAcceptableException(`Order Failed: ${error}`);
+            throw new NotAcceptableException(ORDER_MESSAGES.ORDER_FAILED(error));
         } finally {
             await queryRunner.release();
         }
@@ -134,7 +134,7 @@ export class OrderService {
             throw new NotFoundException(ITEM_MESSAGES.NOT_FOUND)
         }
         if (await this.IsItemInOrder(existOrder, item)) {
-            throw new NotAcceptableException('This item is already in cart')
+            throw new NotAcceptableException(ORDER_MESSAGES.ITEM_IN_CART)
         }
         if (quantity > item.quantityAvailable) {
             throw new NotAcceptableException(ITEM_MESSAGES.REDUCTION_QUANTITY_GREATER_THAN_AVAILABLE)
