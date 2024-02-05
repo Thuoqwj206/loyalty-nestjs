@@ -24,6 +24,9 @@ import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
 import { UpdateStoreDTO } from './dtos/update-store.dto';
 import { STORE_CONSTANTS } from 'src/constant';
+import { CloudinaryService } from 'src/services/cloudinary/cloudinary.service';
+import { Url } from 'twilio/lib/interfaces';
+import { EFormula } from 'src/enum/store-enum/rank-formula.enum';
 
 @Injectable()
 export class StoreService {
@@ -36,6 +39,7 @@ export class StoreService {
         private readonly jwtService: JwtService,
         private readonly itemService: ItemService,
         private readonly giftService: GiftService,
+        private readonly cloudinaryService: CloudinaryService
     ) { }
 
     async findAll(): Promise<Store[]> {
@@ -72,8 +76,9 @@ export class StoreService {
         return this.userService.addPoint(id, body.point)
     }
 
-    async addStoreItem(store: Store, body: CreateItemDTO): Promise<Item> {
-        return this.itemService.addNewItem(body, store)
+    async addStoreItem(store: Store, body: CreateItemDTO, file: Express.Multer.File): Promise<Item> {
+        const img = await this.uploadImageToCloudinary(file)
+        return this.itemService.addNewItem(body, store, img.url)
     }
 
     async findCurrentStoreItem(store: Store): Promise<Item[]> {
@@ -81,12 +86,12 @@ export class StoreService {
         return this.itemService.findStoreItem(targetStore)
     }
 
-    async updateCurrentStoreItem(store: Store, body: UpdateItemDTO, id: number): Promise<Item> {
+    async updateCurrentStoreItem(store: Store, body: UpdateItemDTO, id: number, file: Express.Multer.File): Promise<Item> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.itemService.isItemInStore(id, currentStore) == false) {
             throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
-        return this.itemService.update(body, id)
+        return this.itemService.update(body, id, file)
     }
 
     async deleteCurrentStoreItem(store: Store, id: number): Promise<{ message: string }> {
@@ -97,8 +102,9 @@ export class StoreService {
         return this.itemService.delete(id)
     }
 
-    async addStoreGift(store: Store, body: CreateGiftDTO): Promise<Gift> {
-        return this.giftService.addNewGift(body, store)
+    async addStoreGift(store: Store, body: CreateGiftDTO, file: Express.Multer.File): Promise<Gift> {
+        const img = await this.uploadImageToCloudinary(file)
+        return this.giftService.addNewGift(body, store, img.url)
     }
 
     async findCurrentStoreGift(store: Store): Promise<Gift[]> {
@@ -106,12 +112,26 @@ export class StoreService {
         return this.giftService.findStoreGift(targetStore)
     }
 
-    async updateStoreGift(store: Store, body: UpdateGiftDTO, id: number): Promise<Gift> {
+    async changeFormula(store: Store): Promise<Store> {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (currentStore.rankFormula === EFormula.LIMITATION) {
+            currentStore.rankFormula = EFormula.PERCENTAGE
+        }
+        else currentStore.rankFormula = EFormula.LIMITATION
+        await this.storesRepository.save({
+            ...currentStore
+        })
+        return this.storesRepository.findOne({ where: { id: currentStore.id }, select: ['name', 'rankFormula'] })
+    }
+
+
+    async updateStoreGift(store: Store, body: UpdateGiftDTO, id: number, file: Express.Multer.File): Promise<Gift> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (await this.giftService.isGiftInStore(id, currentStore) == false) {
             throw new NotAcceptableException(STORE_MESSAGES.USER_NOT_BELONG)
         }
-        return this.giftService.update(body, id)
+        const img = await this.uploadImageToCloudinary(file)
+        return this.giftService.update(body, id, img.url)
     }
 
     async deleteStoreGift(store: Store, id: number): Promise<{ message: string }> {
@@ -147,6 +167,7 @@ export class StoreService {
             throw new NotAcceptableException(STORE_MESSAGES.WAIT_FOR_ADMIN)
         }
         const token = await this.generateToken(existedStore)
+        await this.redisService.setExpire(String(existedStore.id), token, STORE_CONSTANTS.LOGOUT_TOKEN_TIME)
         const returnStore = await this.storesRepository.findOne({ where: { id: existedStore.id }, select: ['name', 'email', 'phone'] })
         return { store: returnStore, token: token }
     }
@@ -202,7 +223,7 @@ export class StoreService {
             throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
         const token = await this.redisService.get(String(store.id))
-        await this.redisService.setExpire(token, 1, STORE_CONSTANTS.LOGOUT_TOKEN)
+        await this.redisService.setExpire(token, 1, STORE_CONSTANTS.LOGOUT_TOKEN_TIME)
         return { message: STORE_MESSAGES.LOGOUT }
     }
 
@@ -248,6 +269,8 @@ export class StoreService {
             return store
         }
     }
+
+
     async findByEmail(email: string): Promise<Store | null> {
         const store = await this.storesRepository.findOne({ where: { email } })
         if (store) {
@@ -268,6 +291,10 @@ export class StoreService {
         return this.jwtService.signAsync(payload)
     }
 
-
+    async uploadImageToCloudinary(file: Express.Multer.File) {
+        return await this.cloudinaryService.uploadImage(file).catch(() => {
+            throw new BadRequestException('Invalid file type.');
+        });
+    }
 }
 

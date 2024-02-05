@@ -5,6 +5,7 @@ import { Gift, Store } from "src/model";
 import { MoreThan, Repository } from "typeorm";
 import { CreateGiftDTO } from "./dtos";
 import { UpdateGiftDTO } from "./dtos/update-gift.dto";
+import { Url } from "url";
 
 @Injectable()
 export class GiftService {
@@ -48,7 +49,7 @@ export class GiftService {
             expirationDate: MoreThan(new Date())
         })
     }
-    async addNewGift(body: CreateGiftDTO, store: Store): Promise<Gift> {
+    async addNewGift(body: CreateGiftDTO, store: Store, image: Url): Promise<Gift> {
         const { name } = body
         const gift = await this.giftRepository.findOne({ where: { name } })
         if (gift) {
@@ -57,23 +58,21 @@ export class GiftService {
         const newGift = await this.giftRepository.create(body)
         await this.giftRepository.save({
             ...newGift,
-            store: store
+            store,
+            image
         })
         return newGift
     }
 
-    async update(body: UpdateGiftDTO, id: number): Promise<Gift> {
+    async update(body: UpdateGiftDTO, id: number, image: Url): Promise<Gift> {
         const gift = await this.giftRepository.findOne({ where: { id } })
         if (!gift) {
             throw new NotAcceptableException(GIFT_MESSAGES.NOT_FOUND)
         }
-        const existed = await this.giftRepository.findOne({ where: { name: body.name } })
-        if (existed) {
-            throw new NotAcceptableException(GIFT_MESSAGES.EXISTED_GIFT_NAME)
-        }
         return this.giftRepository.save({
             ...gift,
-            ...body
+            ...body,
+            image
         })
     }
 

@@ -6,6 +6,7 @@ import { Order } from "./order.model";
 import { GiftOrder } from "./gift-order.model";
 import { Exclude } from "class-transformer";
 import { EStatus } from "src/enum";
+import { EFormula } from "src/enum/store-enum/rank-formula.enum";
 
 @Entity('stores')
 export class Store extends BaseEntity {
@@ -42,6 +43,13 @@ export class Store extends BaseEntity {
         default: null
     })
     email_verified_at: Date
+
+    @Column({
+        type: 'enum',
+        enum: EFormula,
+        default: EFormula.LIMITATION
+    })
+    rankFormula: EFormula
 
     @Column({
         type: "enum",

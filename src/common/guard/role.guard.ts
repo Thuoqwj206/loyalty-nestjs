@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { JsonWebTokenError, JwtService } from "@nestjs/jwt";
+import { JwtService } from "@nestjs/jwt";
 import 'dotenv/config';
+import { SECRET_KEY } from "src/config";
 import { ERole } from "src/enum/role.enum";
 import { RedisService } from "../../services/redis/redis.service";
-import { SECRET_KEY } from "src/config";
 
 @Injectable()
 export class RolesGuard implements CanActivate {

@@ -1,6 +1,7 @@
 import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Table } from "typeorm";
 import { Store } from "./store.model";
 import { OrderItem } from "./order-item.model";
+import { Url } from "url";
 
 @Entity('items')
 export class Item extends BaseEntity {
@@ -15,7 +16,7 @@ export class Item extends BaseEntity {
     @Column({
         type: 'varchar',
     })
-    image: string
+    image: Url
 
     @Column({
         type: 'float',
