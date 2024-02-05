@@ -26,6 +26,7 @@ import { UpdateStoreDTO } from './dtos/update-store.dto';
 import { STORE_CONSTANTS } from 'src/constant';
 import { CloudinaryService } from 'src/services/cloudinary/cloudinary.service';
 import { Url } from 'twilio/lib/interfaces';
+import { EFormula } from 'src/enum/store-enum/rank-formula.enum';
 
 @Injectable()
 export class StoreService {
@@ -77,7 +78,6 @@ export class StoreService {
 
     async addStoreItem(store: Store, body: CreateItemDTO, file: Express.Multer.File): Promise<Item> {
         const img = await this.uploadImageToCloudinary(file)
-        console.log(img)
         return this.itemService.addNewItem(body, store, img.url)
     }
 
@@ -111,6 +111,19 @@ export class StoreService {
         const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
         return this.giftService.findStoreGift(targetStore)
     }
+
+    async changeFormula(store: Store): Promise<Store> {
+        const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
+        if (currentStore.rankFormula === EFormula.LIMITATION) {
+            currentStore.rankFormula = EFormula.PERCENTAGE
+        }
+        else currentStore.rankFormula = EFormula.LIMITATION
+        await this.storesRepository.save({
+            ...currentStore
+        })
+        return this.storesRepository.findOne({ where: { id: currentStore.id }, select: ['name', 'rankFormula'] })
+    }
+
 
     async updateStoreGift(store: Store, body: UpdateGiftDTO, id: number, file: Express.Multer.File): Promise<Gift> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
@@ -154,6 +167,7 @@ export class StoreService {
             throw new NotAcceptableException(STORE_MESSAGES.WAIT_FOR_ADMIN)
         }
         const token = await this.generateToken(existedStore)
+        await this.redisService.setExpire(String(existedStore.id), token, STORE_CONSTANTS.LOGOUT_TOKEN_TIME)
         const returnStore = await this.storesRepository.findOne({ where: { id: existedStore.id }, select: ['name', 'email', 'phone'] })
         return { store: returnStore, token: token }
     }
@@ -209,7 +223,7 @@ export class StoreService {
             throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
         }
         const token = await this.redisService.get(String(store.id))
-        await this.redisService.setExpire(token, 1, STORE_CONSTANTS.LOGOUT_TOKEN)
+        await this.redisService.setExpire(token, 1, STORE_CONSTANTS.LOGOUT_TOKEN_TIME)
         return { message: STORE_MESSAGES.LOGOUT }
     }
 
@@ -255,6 +269,8 @@ export class StoreService {
             return store
         }
     }
+
+
     async findByEmail(email: string): Promise<Store | null> {
         const store = await this.storesRepository.findOne({ where: { email } })
         if (store) {
