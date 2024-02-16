@@ -34,7 +34,9 @@ export class Gift extends BaseEntity {
     })
     quantityAvailable: number
 
-    @ManyToOne(() => Store, (store) => store.gifts)
+    @ManyToOne(() => Store, (store) => store.gifts, {
+        onDelete: 'CASCADE'
+    })
     store: Store
 
     @OneToMany(() => GiftExchange, (giftExchange) => giftExchange.gift)

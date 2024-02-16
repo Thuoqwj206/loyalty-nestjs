@@ -1,8 +1,8 @@
 import { Injectable, NotAcceptableException, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { ORDER_MESSAGES } from "src/constant/messages";
+import { ORDER_MESSAGES, USER_MESSAGES } from "src/constant/messages";
 import { ITEM_MESSAGES } from "src/constant/messages/item.message";
-import { Item, Order, Store, User } from "src/model";
+import { Item, Order, OrderItem, Store, User } from "src/model";
 import { DataSource, Repository } from "typeorm";
 import { ItemService } from "../item/item.service";
 import { CreateOrderItemDTO } from "../order-item/dtos";
@@ -57,8 +57,11 @@ export class OrderService {
         } return false
     }
 
-    async createNewOrder(body: CreateOrderDTO, store: Store) {
+    async createNewOrder(body: CreateOrderDTO, store: Store): Promise<{ message: string } | Order> {
         const user = await this.userService.findByPhone(body.phone)
+        if (!user) {
+            return { message: USER_MESSAGES.NOT_FOUND }
+        }
         const targetStore = await this.storeService.findOne(store.id)
         const newOrder = await this.orderRepository.create({
             user: user,
@@ -66,19 +69,23 @@ export class OrderService {
         }).save()
         return this.orderRepository.findOne({ where: { id: newOrder.id }, select: ['id', 'createDate'] })
     }
-    async getOrderDetail(id: number) {
+    async getOrderDetail(id: number): Promise<{ id: number, Items: OrderItem[], Price: number }> {
         const order = await this.orderRepository.findOne({ relations: ['user', 'store'], where: { id } })
         if (!order) {
             throw new NotFoundException(ORDER_MESSAGES.NOT_FOUND)
         }
         const orderItems = await this.orderItemService.findItemsOfOrder(order)
-        orderItems.map(async (orderItem) => {
-            order.totalPrice += (orderItem.item?.price * orderItem.quantity)
-        })
+        if (order.totalPrice > 0) {
+            return { id: order.id, Items: orderItems, Price: order.totalPrice }
+        } else {
+            orderItems.map(async (orderItem) => {
+                order.totalPrice += (orderItem.item?.price * orderItem.quantity)
+            })
+        }
         return { id: order.id, Items: orderItems, Price: order.totalPrice }
     }
 
-    async completeOrder(id: number) {
+    async completeOrder(id: number, store: Store): Promise<{ id: number, Items: OrderItem[], Price: number, TotalPoint: number, Created: Date }> {
         const order = await this.orderRepository.findOne({ relations: ['user', 'store'], where: { id } })
         if (!order) {
             throw new NotFoundException(ORDER_MESSAGES.NOT_FOUND)
@@ -99,7 +106,7 @@ export class OrderService {
                     quantityAvailable: result.newQuantity
                 })
             })
-            const result = await this.userService.accumulatePoint(order.user, order.totalPrice)
+            const result = await this.userService.accumulatePoint(order.user, order.totalPrice, store)
             await queryRunner.manager.save(User, {
                 ...result.user,
                 point: result.point
@@ -110,7 +117,7 @@ export class OrderService {
                 createDate: new Date()
             })
             await queryRunner.commitTransaction();
-            return { id: newOrder.id, Items: newOrder.orderItems, Price: newOrder.totalPrice, Created: newOrder.createDate }
+            return { id: newOrder.id, Items: newOrder.orderItems, Price: newOrder.totalPrice, TotalPoint: result.point - result.user.point, Created: newOrder.createDate }
 
         } catch (error) {
             await queryRunner.rollbackTransaction();
@@ -134,7 +141,7 @@ export class OrderService {
             throw new NotFoundException(ITEM_MESSAGES.NOT_FOUND)
         }
         if (await this.IsItemInOrder(existOrder, item)) {
-            throw new NotAcceptableException(ORDER_MESSAGES.ITEM_IN_CART)
+            return this.orderItemService.updateOrderItem(existOrder, quantity, item)
         }
         if (quantity > item.quantityAvailable) {
             throw new NotAcceptableException(ITEM_MESSAGES.REDUCTION_QUANTITY_GREATER_THAN_AVAILABLE)

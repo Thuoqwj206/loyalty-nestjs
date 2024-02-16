@@ -28,7 +28,9 @@ export class Item extends BaseEntity {
     })
     quantityAvailable: number
 
-    @ManyToOne(() => Store, (store) => store.items)
+    @ManyToOne(() => Store, (store) => store.items, {
+        onDelete: 'CASCADE'
+    })
     store: Store
 
     @OneToMany(() => OrderItem, (orderItem) => orderItem.item)

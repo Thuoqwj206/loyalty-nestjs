@@ -1,15 +1,12 @@
 
-import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TwilioModule } from 'nestjs-twilio';
 import { User } from 'src/model/user.model';
-import { AdminModule } from '../admin/admin.module';
+import { IoRedisModule } from 'src/services/redis/redis.module';
 import { UsersController } from './user.controller';
 import { UserService } from './user.service';
-import { IoRedisModule } from 'src/services/redis/redis.module';
-import { StoreModule } from '../store/store.module';
 
 @Module({
     imports: [TwilioModule.forRootAsync({

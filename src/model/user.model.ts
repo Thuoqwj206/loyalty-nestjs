@@ -50,7 +50,9 @@ export class User extends BaseEntity {
     })
     Rank: ERank
 
-    @ManyToOne(() => Store, (store) => store.users)
+    @ManyToOne(() => Store, (store) => store.users, {
+        onDelete: 'CASCADE'
+    })
     store: Store
 
     @OneToMany(() => GiftOrder, (giftOrder) => giftOrder.user)

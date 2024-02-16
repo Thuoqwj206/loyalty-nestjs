@@ -63,7 +63,7 @@ export class ItemService {
             throw new NotAcceptableException(ITEM_MESSAGES.NOT_FOUND)
         }
         const existed = await this.itemRepository.findOne({ where: { name: body.name } })
-        if (existed) {
+        if (body.name && existed) {
             throw new NotAcceptableException(ITEM_MESSAGES.EXISTED_ITEM_NAME)
         }
         return this.itemRepository.save({

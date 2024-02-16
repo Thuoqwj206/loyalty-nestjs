@@ -7,11 +7,15 @@ export class OrderItem extends BaseEntity {
     @PrimaryGeneratedColumn()
     public id: number
 
-    @ManyToOne(() => Order, order => order.orderItems)
+    @ManyToOne(() => Order, order => order.orderItems, {
+        onDelete: 'CASCADE'
+    })
     @JoinColumn()
     order: Order;
 
-    @ManyToOne(() => Item, item => item.orderItems)
+    @ManyToOne(() => Item, item => item.orderItems, {
+        onDelete: 'CASCADE'
+    })
     @JoinColumn()
     item: Item;
 

@@ -5,9 +5,4 @@ import { CreateGiftExchangeDTO } from "./dtos";
 @Controller('/order-item')
 export class GiftExchangeController {
     constructor(private readonly orderItemService: GiftExchangeService) { }
-
-    @Get()
-    async findAll() {
-        return this.orderItemService.findAll()
-    }
 }

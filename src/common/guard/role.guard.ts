@@ -21,19 +21,24 @@ export class RolesGuard implements CanActivate {
         if (!token || await this.redisService.get(token)) {
             throw new UnauthorizedException();
         }
-        const payload = await this.jwt.verifyAsync(token, { secret: SECRET_KEY });
-        const userRoles = payload.role
-        switch (userRoles) {
-            case ERole.STORE:
-                request.currentStore = payload
-                break;
-            case ERole.USER:
-                request.currentUser = payload
-                break;
-            case ERole.ADMIN:
-                break;
+        try {
+
+            const payload = await this.jwt.verifyAsync(token, { secret: SECRET_KEY });
+            const userRoles = payload.role
+            switch (userRoles) {
+                case ERole.STORE:
+                    request.currentStore = payload
+                    break;
+                case ERole.USER:
+                    request.currentUser = payload
+                    break;
+                case ERole.ADMIN:
+                    break;
+            }
+            return this.validateRoles(roles, userRoles);
+        } catch (e) {
+            if (e.message === 'jwt expired') throw new UnauthorizedException();
         }
-        return this.validateRoles(roles, userRoles);
     }
 
     validateRoles(roles: string[], userRoles: string[]) {

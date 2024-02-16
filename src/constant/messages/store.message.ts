@@ -15,8 +15,9 @@ export const STORE_MESSAGES = {
     PLEASE_RECHECK_EMAIL: 'Please recheck your email',
     STORE_NOT_FOUND: 'Store not found',
     LOGOUT: 'Logout successfully',
-    SENT_EMAIL: 'The verification link is sent to your email. Please confirm it',
+    SENT_EMAIL: 'The verification link would be sent to your email after admin confirm your registration',
     WAIT_FOR_ADMIN: 'Please waiting for confirmation from admin',
-    USER_NOT_BELONG: 'This user isnt belong to your store',
+    USER_NOT_BELONG: 'You don not have that permission',
     NOT_VERIFIED: 'You are not verified',
+    STORE_VALIDATED: 'Store registration is confirm'
 };
