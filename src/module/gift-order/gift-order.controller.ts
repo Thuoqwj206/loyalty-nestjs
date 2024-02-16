@@ -23,7 +23,7 @@ export class GiftOrderController {
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     async findStoreGiftOrder(@Param('id') id: number) {
-        return this.giftOrderService.findStoreGiftOrder(id)
+        return this.giftOrderService.getOrderDetail(id)
     }
 
     @Post()

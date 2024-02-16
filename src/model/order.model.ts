@@ -20,10 +20,14 @@ export class Order extends BaseEntity {
     })
     createDate: Date
 
-    @ManyToOne(() => User, (user) => user.orders)
+    @ManyToOne(() => User, (user) => user.orders, {
+        onDelete: 'CASCADE'
+    })
     user: User
 
-    @ManyToOne(() => Store, (store) => store.orders)
+    @ManyToOne(() => Store, (store) => store.orders, {
+        onDelete: 'CASCADE'
+    })
     store: Store
 
     @OneToMany(() => OrderItem, (orderItems) => orderItems.order)

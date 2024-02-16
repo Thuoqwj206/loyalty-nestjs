@@ -42,7 +42,7 @@ export class OrderController {
     @Post('/:id/complete')
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
-    async completeOrder(@Param('id') id: number) {
-        return this.orderService.completeOrder(id)
+    async completeOrder(@Param('id') id: number, @currentStore() store: Store) {
+        return this.orderService.completeOrder(id, store)
     }
 }

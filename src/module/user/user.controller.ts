@@ -32,7 +32,7 @@ export class UsersController {
         return this.userService.logout(user);
     }
 
-    @Post('/verify-otp/login')
+    @Post('/verify')
     async confirmLogin(@Body() body: OTPConfirmDTO) {
         const verifyUser = await this.userService.confirmLoginOTP(body)
         return verifyUser

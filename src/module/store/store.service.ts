@@ -2,13 +2,16 @@ import { BadRequestException, Injectable, NotAcceptableException, NotFoundExcept
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { STORE_CONSTANTS, USER_CONSTANTS } from 'src/constant';
 import { STORE_MESSAGES, USER_MESSAGES } from 'src/constant/messages';
 import { EStatus } from 'src/enum';
 import { ERole } from 'src/enum/role.enum';
+import { EFormula } from 'src/enum/store-enum/rank-formula.enum';
 import { MailService } from 'src/mail/mail.service';
 import { Gift, Item } from 'src/model';
 import { Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
+import { CloudinaryService } from 'src/services/cloudinary/cloudinary.service';
 import { RedisService } from 'src/services/redis/redis.service';
 import { Repository } from 'typeorm';
 import { CreateGiftDTO } from '../gift/dtos';
@@ -23,10 +26,6 @@ import { UserService } from '../user/user.service';
 import { LoginStoreDTO } from './dtos/login-store.dto';
 import { RegisterStoreDTO } from './dtos/register-store.dto';
 import { UpdateStoreDTO } from './dtos/update-store.dto';
-import { STORE_CONSTANTS } from 'src/constant';
-import { CloudinaryService } from 'src/services/cloudinary/cloudinary.service';
-import { Url } from 'twilio/lib/interfaces';
-import { EFormula } from 'src/enum/store-enum/rank-formula.enum';
 
 @Injectable()
 export class StoreService {
@@ -112,6 +111,14 @@ export class StoreService {
         return this.giftService.findStoreGift(targetStore)
     }
 
+    async findStoreAvailableGifts(id: number): Promise<Gift[]> {
+        const store = await this.storesRepository.findOne({ where: { id } })
+        if (!store) {
+            throw new NotFoundException(STORE_MESSAGES.STORE_NOT_FOUND)
+        }
+        return this.giftService.findAvailableGifts(store)
+    }
+
     async changeFormula(store: Store): Promise<Store> {
         const currentStore = await this.storesRepository.findOne({ where: { id: store.id } })
         if (currentStore.rankFormula === EFormula.LIMITATION) {
@@ -142,14 +149,34 @@ export class StoreService {
         return this.giftService.delete(id)
     }
 
-
     async userConfirmOTP(body: OTPConfirmDTO, store: Store): Promise<User | { message: string }> {
-        const targetStore = await this.storesRepository.findOne({ where: { id: store.id } })
-        const result = await this.userService.confirmRegisterOTP(body)
-        if (result.isSuccess) {
-            return this.userService.updateUserStore(result.returnUser, targetStore)
+        const targetStore = await this.findByEmail(store.email)
+        const user = await this.userService.findByPhone(body.phone)
+        if (!user) {
+            throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
         }
-        return { message: USER_MESSAGES.NOT_FOUND }
+        const storedOTP = await this.redisService.get(user.phone)
+        if (storedOTP == body.otp) {
+            const newUser = {
+                ...user,
+                verified_at: new Date(),
+                store: targetStore
+            } as User
+            await this.userService.saveUser(newUser)
+            await this.redisService.del(String(storedOTP))
+            await this.redisService.del(newUser?.phone)
+            return this.userService.findById(newUser.id)
+        }
+        else {
+            const currentTry: number = JSON.parse(await this.redisService.get(storedOTP))
+            await this.redisService.setExpire(String(storedOTP), currentTry + 1, USER_CONSTANTS.OTP_EXPIRE_TIME)
+            const result = JSON.parse(await this.redisService.get(storedOTP))
+            if (result > 3) {
+                await this.userService.deleteUser(user.id)
+                return { message: USER_MESSAGES.NOT_FOUND }
+            }
+            else return { message: String(USER_MESSAGES.ATTEMPT_TIME(Number(currentTry))) }
+        }
     }
 
     async login(store: LoginStoreDTO): Promise<{ store: Store, token: string }> {
@@ -229,7 +256,8 @@ export class StoreService {
 
     async register(body: RegisterStoreDTO): Promise<{ message: string }> {
         const store = await this.findByEmail(body.email)
-        if (store) {
+        const existedName = await this.findByName(body.name)
+        if (store || existedName) {
             throw new BadRequestException(STORE_MESSAGES.STORE_ALREADY_EXISTED)
         }
         const salt = await bcrypt?.genSalt(10)
@@ -237,11 +265,11 @@ export class StoreService {
         body.password = hashedPassword
         const newStore = await this.storesRepository.create(body).save()
         const token = await bcrypt?.hash(newStore.email, salt)
-        await this.mailService.sendRequestAdminConfirm(newStore, token)
+        this.mailService.sendStoreConfirmationEmail(newStore, token)
         return { message: STORE_MESSAGES.SENT_EMAIL }
     }
 
-    async verifyEmail(email: string, token: string): Promise<{ returnStore: Store, message: string }> {
+    async verifyEmail(email: string, token: string): Promise<Store> {
         const isConfirm = await bcrypt.compare(email, token)
         if (isConfirm) {
             const store = await this.findByEmail(email)
@@ -249,15 +277,16 @@ export class StoreService {
                 ...store,
                 email_verified_at: new Date()
             })
+            this.mailService.sendRequestAdminConfirm(store, token)
             const returnStore = await this.storesRepository.findOne({ where: { id: store.id }, select: ['name', 'email', 'phone'] })
-            return { returnStore, message: STORE_MESSAGES.NOT_VERIFIED }
+            return returnStore
         }
         else {
             throw new NotFoundException(STORE_MESSAGES.PLEASE_RECHECK_EMAIL)
         }
     }
 
-    async confirmStore(email: string, token: string): Promise<Store> {
+    async confirmStore(email: string, token: string): Promise<{ message: string }> {
         const isConfirm = await bcrypt.compare(email, token)
         if (isConfirm) {
             const store = await this.findByEmail(email)
@@ -265,14 +294,23 @@ export class StoreService {
                 ...store,
                 status: EStatus.VALIDATED
             })
-            await this.mailService.sendStoreConfirmationEmail(store, token)
-            return store
+
+            return { message: STORE_MESSAGES.STORE_VALIDATED }
         }
     }
 
 
     async findByEmail(email: string): Promise<Store | null> {
         const store = await this.storesRepository.findOne({ where: { email } })
+        if (store) {
+            return store
+        }
+        return null
+    }
+
+
+    async findByName(name: string): Promise<Store | null> {
+        const store = await this.storesRepository.findOne({ where: { name } })
         if (store) {
             return store
         }
@@ -292,7 +330,7 @@ export class StoreService {
     }
 
     async uploadImageToCloudinary(file: Express.Multer.File) {
-        return await this.cloudinaryService.uploadImage(file).catch(() => {
+        return this.cloudinaryService.uploadImage(file).catch(() => {
             throw new BadRequestException('Invalid file type.');
         });
     }

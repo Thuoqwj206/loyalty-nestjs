@@ -43,8 +43,9 @@ export class GiftService {
     async findStoreGift(store: Store): Promise<Gift[]> {
         return this.giftRepository.find({ where: { store } })
     }
-    async findAvailableGifts(): Promise<Gift[]> {
+    async findAvailableGifts(store: Store): Promise<Gift[]> {
         return this.giftRepository.findBy({
+            store: store,
             quantityAvailable: MoreThan(0),
             expirationDate: MoreThan(new Date())
         })

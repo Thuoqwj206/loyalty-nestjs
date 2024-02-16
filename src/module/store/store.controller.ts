@@ -54,6 +54,13 @@ export class StoresController {
         return this.storeService.findCurrentStoreGift(store)
     }
 
+    @Get('/:id/gifts')
+    @Roles(ERole.USER)
+    @UseGuards(RolesGuard)
+    async findStoreAvailableGifts(@Param('id') id: number) {
+        return this.storeService.findStoreAvailableGifts(id)
+    }
+
     @Roles(ERole.STORE)
     @UseGuards(RolesGuard)
     @Post('/gifts')
@@ -133,7 +140,7 @@ export class StoresController {
     }
 
     @Get('/verify')
-    @Redirect('https://www.youtube.com/watch?v=xvFZjo5PgG0&ab_channel=Duran')
+    @Redirect('https://www.google.com/')
     async verifyEmail(@Query('email') email: string, @Query('token') token: string) {
         return this.storeService.verifyEmail(email, token)
     }

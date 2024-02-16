@@ -6,12 +6,12 @@ export const USER_CONSTANTS = {
     FIXED_POINT_ADDED: (price: number): number => (price - (price % 100000)) / 1000,
     PRICE_BONUS_LEVEL: 100000,
     FIRST_BONUS_RATE: 0.1,
-    FIRST_BONUS_LIMIT: 5000,
+    FIRST_BONUS_LIMIT: 5,
     SECOND_BONUS_RATE: 0.2,
-    SECOND_BONUS_LIMIT: 10000,
+    SECOND_BONUS_LIMIT: 10,
     LIMITATION_FORMULA: (price: number, rankPoint: number) => ((price - (price % USER_CONSTANTS.PRICE_BONUS_LEVEL)) / USER_CONSTANTS.PRICE_BONUS_LEVEL) * rankPoint,
     PERCENTAGE_FORMULA: (price: number, percentRate: number, limit: number) => {
-        const fixedBonus = (price - (price % USER_CONSTANTS.PRICE_BONUS_LEVEL)) * limit
+        const fixedBonus = (price - (price % USER_CONSTANTS.PRICE_BONUS_LEVEL)) / USER_CONSTANTS.PRICE_BONUS_LEVEL * limit
         const surplus = (price % USER_CONSTANTS.PRICE_BONUS_LEVEL) * percentRate
         const lastBonus = surplus > limit ? limit : surplus
         return Math.floor(fixedBonus + lastBonus)

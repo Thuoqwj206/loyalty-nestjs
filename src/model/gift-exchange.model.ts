@@ -7,10 +7,14 @@ export class GiftExchange extends BaseEntity {
     @PrimaryGeneratedColumn()
     public exchangeGiftId: number
 
-    @ManyToOne(() => GiftOrder, giftOrder => giftOrder.exchangeGifts)
+    @ManyToOne(() => GiftOrder, giftOrder => giftOrder.exchangeGifts, {
+        onDelete: 'CASCADE'
+    })
     giftOrder: GiftOrder;
 
-    @ManyToOne(() => Gift, gift => gift.exchangeGifts)
+    @ManyToOne(() => Gift, gift => gift.exchangeGifts, {
+        onDelete: 'CASCADE'
+    })
     gift: Gift;
 
     @Column({

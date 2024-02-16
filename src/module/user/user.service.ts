@@ -3,17 +3,18 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { TwilioService } from 'nestjs-twilio';
+import { TWILIO_PHONE_NUMBER } from 'src/config';
+import { USER_CONSTANTS } from 'src/constant';
 import { STORE_MESSAGES, USER_MESSAGES } from 'src/constant/messages';
 import { ERank, ERole } from 'src/enum';
+import { EFormula } from 'src/enum/store-enum/rank-formula.enum';
 import { Store } from 'src/model/store.model';
 import { User } from 'src/model/user.model';
 import { RedisService } from 'src/services/redis/redis.service';
 import Twilio from 'twilio/lib/rest/Twilio';
 import { Repository } from 'typeorm';
 import { CreateUserDTO, LoginUserDTO, OTPConfirmDTO, RegisterUserDTO, UpdateUserDTO } from './dtos';
-import { USER_CONSTANTS } from 'src/constant';
-import { TWILIO_PHONE_NUMBER } from 'src/config';
-import { EFormula } from 'src/enum/store-enum/rank-formula.enum';
+import { currentStore } from 'src/decorator/current-store.decorator';
 @Injectable()
 export class UserService {
     constructor(
@@ -25,10 +26,10 @@ export class UserService {
 
     ) { }
     async findAll(): Promise<User[]> {
-        return this.usersRepository.find({ select: ['name', 'email', 'phone'] });
+        return this.usersRepository.find({ select: ['id', 'name', 'email', 'phone'] });
     }
     async findStoreUsers(store: Store): Promise<User[]> {
-        return this.usersRepository.find({ where: { store }, select: ['name', 'email', 'phone'] })
+        return this.usersRepository.find({ where: { store }, select: ['id', 'name', 'email', 'phone'] })
     }
 
     async create(body: RegisterUserDTO): Promise<{ message: string }> {
@@ -39,10 +40,9 @@ export class UserService {
         const salt = await bcrypt?.genSalt(10)
         body.password = await bcrypt?.hash(body.password, salt)
         const otp = String(Math.floor(USER_CONSTANTS.MIN_OTP + Math.random() * USER_CONSTANTS.MAX_OTP))
-        const newUser = await this.usersRepository.create(body)
-        await this.usersRepository.save(newUser)
+        const newUser = await this.usersRepository.create(body).save()
         await this.redisService.setExpire(newUser.phone, otp, USER_CONSTANTS.OTP_EXPIRE_TIME)
-        await this.sendSMS(otp, newUser.phone)
+        this.sendSMS(otp, newUser.phone)
         await this.redisService.setExpire(otp, 1, USER_CONSTANTS.OTP_EXPIRE_TIME)
         return { message: USER_MESSAGES.SENT_OTP }
     }
@@ -55,35 +55,10 @@ export class UserService {
             to: number,
         });
     }
-    async confirmRegisterOTP(body: OTPConfirmDTO) {
-        const user = await this.findByPhone(body.phone)
-        if (!user || user.verified_at) {
-            throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
-        }
-        const storedOTP = await this.redisService.get(user.phone)
-        if (storedOTP == body.otp) {
-            const newUser = {
-                ...user,
-                verified_at: new Date(),
-            } as User
-            await this.usersRepository.save(newUser)
-            await this.redisService.del(String(storedOTP))
-            await this.redisService.del(newUser?.phone)
-            const returnUser = await this.usersRepository.findOne({ where: { id: newUser.id } })
-            return { returnUser, isSuccess: true }
-        }
-        else {
-            const currentTry: number = JSON.parse(await this.redisService.get(storedOTP))
-            await this.redisService.setExpire(String(storedOTP), currentTry + 1, USER_CONSTANTS.OTP_EXPIRE_TIME)
-            const result = Number(await this.redisService.get(storedOTP))
-            if (result > 3) {
-                await this.usersRepository.delete(user.id)
-                return { isSuccess: false }
-            }
-            else { return { message: String(USER_MESSAGES.ATTEMPT_TIME(Number(currentTry))) } }
-        }
-    }
 
+    async saveUser(user: User): Promise<User> {
+        return this.usersRepository.save(user)
+    }
 
     async login(user: LoginUserDTO): Promise<{ message: string }> {
         const existedUser = await this.findByPhone(user.phone)
@@ -95,7 +70,7 @@ export class UserService {
         }
         const otp = Math.floor(USER_CONSTANTS.MIN_OTP + Math.random() * USER_CONSTANTS.MAX_OTP) as unknown as string;
         await this.redisService.setExpire(String(existedUser.id), otp, USER_CONSTANTS.OTP_EXPIRE_TIME)
-        await this.sendSMS(otp, existedUser.phone)
+        this.sendSMS(otp, existedUser.phone)
         return { message: USER_MESSAGES.SENT_OTP }
     }
 
@@ -103,7 +78,7 @@ export class UserService {
         const user = await this.findByPhone(body.phone)
         const storedOTP = await this.redisService.get(String(user.id))
         if (storedOTP == body.otp) {
-            const ReturnUserDTO = await this.usersRepository.find({ where: { id: user.id }, select: ['name', 'email', 'phone'] })
+            const ReturnUserDTO = await this.usersRepository.find({ where: { id: user.id }, select: ['id', 'name', 'email', 'phone'] })
             const accessToken = await this.generateToken(user)
             await this.redisService.setExpire(JSON.stringify(user.id), accessToken, USER_CONSTANTS.TOKEN_EXPIRE_TIME)
             await this.redisService.del(String(storedOTP))
@@ -111,7 +86,7 @@ export class UserService {
         }
         else {
             const currentTry: number = JSON.parse(await this.redisService.get(storedOTP))
-            await this.redisService.setExpire(String(storedOTP), currentTry + 1, 600000)
+            await this.redisService.setExpire(String(storedOTP), currentTry + 1, USER_CONSTANTS.OTP_EXPIRE_TIME)
             const result = JSON.parse(await this.redisService.get(storedOTP))
             if (result > 3) {
                 throw new NotFoundException(USER_MESSAGES.DEAD_OTP)
@@ -131,17 +106,17 @@ export class UserService {
     async findByPhone(phone: string): Promise<User> {
         const user = await this.usersRepository.findOne({ where: { phone } })
         if (!user) {
-            throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
+            return null
         }
         return user
     }
 
     async findById(id: number): Promise<User> {
-        return this.usersRepository.findOne({ where: { id } })
+        return this.usersRepository.findOne({ where: { id }, select: ['id', 'name', 'email', 'phone'] })
     }
 
     async findOne(id: number): Promise<User> {
-        const user = await this.usersRepository.findOne({ where: { id: id }, select: ['name', 'email', 'phone'] })
+        const user = await this.usersRepository.findOne({ where: { id: id }, select: ['id', 'name', 'email', 'phone'] })
         if (!user) {
             throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
         }
@@ -163,13 +138,14 @@ export class UserService {
         if (!user) {
             throw new NotFoundException(USER_MESSAGES.NOT_FOUND)
         }
-        return this.usersRepository.save({
+        await this.usersRepository.save({
             ...user,
             point: user.point + point
         })
+        return this.usersRepository.findOne({ where: { id }, select: ['id', 'name', 'phone', 'email', 'point'] })
     }
 
-    async accumulatePoint(user: User, price: number): Promise<{ user: User, point: number }> {
+    async accumulatePoint(user: User, price: number, store: Store): Promise<{ user: User, point: number }> {
         const targetUser = await this.usersRepository.findOne({ where: { id: user.id }, relations: ['store'] })
         let point = targetUser.point
         point += USER_CONSTANTS.FIXED_POINT_ADDED(price)
@@ -186,7 +162,7 @@ export class UserService {
                 bonus = USER_CONSTANTS.SECOND_BONUS_LIMIT
             }
         }
-        if (targetUser.store.rankFormula == EFormula.LIMITATION) {
+        if (store.rankFormula == EFormula.LIMITATION) {
             bonus += USER_CONSTANTS.LIMITATION_FORMULA(price, USER_CONSTANTS.RANK_DIFF[targetUser.Rank])
         } else {
             bonus += USER_CONSTANTS.PERCENTAGE_FORMULA(price, USER_CONSTANTS.PERCENT_DIFF[targetUser.Rank], USER_CONSTANTS.LIMIT_DIFF[user.Rank])
@@ -230,7 +206,7 @@ export class UserService {
             ...user,
             store: store
         })
-        return this.usersRepository.findOne({ where: { id: user.id }, select: ['name', 'email', 'phone'] })
+        return this.usersRepository.findOne({ where: { id: user.id }, select: ['id', 'name', 'email', 'phone'] })
     }
 
     async updateUser(body: UpdateUserDTO, id: number): Promise<User> {
@@ -246,7 +222,7 @@ export class UserService {
             ...user,
             ...body
         })
-        return this.usersRepository.findOne({ where: { id: user.id }, select: ['name', 'email', 'phone'] })
+        return this.usersRepository.findOne({ where: { id: user.id }, select: ['id', 'name', 'email', 'phone'] })
     }
 
     async deleteUser(id: number): Promise<{ message: string }> {
